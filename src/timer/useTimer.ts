@@ -26,8 +26,11 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
   stateRef.current = state
   const configRef = useRef(config)
   configRef.current = config
+  const onSolveRef = useRef(onSolve)
+  onSolveRef.current = onSolve
   const holdTimer = useRef<number | null>(null)
-  const raf = useRef<number | null>(null)
+  const runningRaf = useRef<number | null>(null)
+  const inspectionRaf = useRef<number | null>(null)
 
   const dispatch = useCallback((event: Omit<TimerEvent, 'now'> & { now?: number }) => {
     const now = event.now ?? performance.now()
@@ -35,9 +38,9 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
     stateRef.current = next
     setState(next)
     if (next.lastResult) {
-      onSolve(next.lastResult.elapsedMs, next.lastResult.penalty)
+      onSolveRef.current(next.lastResult.elapsedMs, next.lastResult.penalty)
     }
-  }, [onSolve])
+  }, [])
 
   // hold timer: after PRESS while holding, arm after holdToStartMs
   useEffect(() => {
@@ -46,7 +49,12 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
         () => dispatch({ type: 'HOLD_ELAPSED' }),
         configRef.current.holdToStartMs,
       )
-      return () => { if (holdTimer.current) window.clearTimeout(holdTimer.current) }
+    }
+    return () => {
+      if (holdTimer.current) {
+        window.clearTimeout(holdTimer.current)
+        holdTimer.current = null
+      }
     }
   }, [state.phase, dispatch])
 
@@ -56,10 +64,10 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
       const tick = () => {
         const elapsed = performance.now() - (stateRef.current.solveStartedAt ?? 0)
         setDisplay(formatTime(elapsed, decimals))
-        raf.current = requestAnimationFrame(tick)
+        runningRaf.current = requestAnimationFrame(tick)
       }
-      raf.current = requestAnimationFrame(tick)
-      return () => { if (raf.current) cancelAnimationFrame(raf.current) }
+      runningRaf.current = requestAnimationFrame(tick)
+      return () => { if (runningRaf.current) cancelAnimationFrame(runningRaf.current) }
     }
   }, [state.phase, state.solveStartedAt, decimals])
 
@@ -69,10 +77,10 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
       const tick = () => {
         const elapsed = (performance.now() - (stateRef.current.inspectionStartedAt ?? 0)) / 1000
         setInspectionSeconds(Math.max(0, Math.ceil(15 - elapsed)))
-        raf.current = requestAnimationFrame(tick)
+        inspectionRaf.current = requestAnimationFrame(tick)
       }
-      raf.current = requestAnimationFrame(tick)
-      return () => { if (raf.current) cancelAnimationFrame(raf.current) }
+      inspectionRaf.current = requestAnimationFrame(tick)
+      return () => { if (inspectionRaf.current) cancelAnimationFrame(inspectionRaf.current) }
     }
     setInspectionSeconds(null)
   }, [state.phase, state.inspectionStartedAt])
