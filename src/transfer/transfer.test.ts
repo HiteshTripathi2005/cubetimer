@@ -56,4 +56,12 @@ describe('parseImport', () => {
   it('rejects a newer-than-supported version', () => {
     expect(() => parseImport(JSON.stringify({ version: 999, exportedAt: 0 }))).toThrow()
   })
+
+  it('rejects an array (not a plain object)', () => {
+    expect(() => parseImport('[]')).toThrow()
+  })
+
+  it('rejects object with version but missing exportedAt', () => {
+    expect(() => parseImport(JSON.stringify({ version: 1 }))).toThrow()
+  })
 })

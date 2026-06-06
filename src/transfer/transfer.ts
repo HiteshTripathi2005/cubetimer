@@ -32,8 +32,7 @@ export function downloadExport(file: ExportFile, filename: string): void {
   a.download = filename
   document.body.appendChild(a)
   a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url) }, 0)
 }
 
 function migrate(file: ExportFile): ExportFile {
@@ -48,9 +47,10 @@ export function parseImport(text: string): ExportFile {
   } catch {
     throw new Error('File is not valid JSON.')
   }
-  if (typeof data !== 'object' || data === null) throw new Error('Unexpected file contents.')
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error('Unexpected file contents.')
   const obj = data as Record<string, unknown>
   if (typeof obj.version !== 'number') throw new Error('Missing version field.')
   if (obj.version > EXPORT_VERSION) throw new Error('File is from a newer version of CubeTimer.')
+  if (typeof obj.exportedAt !== 'number') throw new Error('Missing or invalid exportedAt field.')
   return migrate(obj as unknown as ExportFile)
 }
