@@ -23,12 +23,16 @@ describe('best / worst / mean', () => {
     expect(best([])).toBeNull()
     expect(mean([s(1, 'dnf')])).toBeNull()
   })
+  it('worst returns null on all-dnf', () =>
+    expect(worst([s(1, 'dnf')])).toBeNull())
 })
 
 describe('average (ao5)', () => {
   it('returns null with fewer than 5 solves', () => {
     expect(average([s(1), s(2), s(3), s(4)], 5)).toBeNull()
   })
+  it('returns null for n < 3 (ao1/ao2 unsupported)', () =>
+    expect(average([s(1), s(2)], 2)).toBeNull())
   it('drops one best and one worst, means the middle 3', () => {
     // times 1,2,3,4,5 -> drop 1 and 5 -> mean(2,3,4)=3
     const list = [s(1), s(2), s(3), s(4), s(5)]
@@ -83,4 +87,10 @@ describe('formatTime', () => {
     expect(formatTime('DNF', 2)).toBe('DNF')
     expect(formatTime(null, 2)).toBe('—')
   })
+  it('carries into minutes when toFixed rounds sub-minute up to 60 (2 decimals)', () =>
+    expect(formatTime(59999, 2)).toBe('1:00.00'))
+  it('does NOT carry into minutes at 3 decimals (exact representation)', () =>
+    expect(formatTime(59999, 3)).toBe('59.999'))
+  it('formats 2:00.50 correctly', () =>
+    expect(formatTime(120500, 2)).toBe('2:00.50'))
 })
