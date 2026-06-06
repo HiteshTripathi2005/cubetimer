@@ -11,6 +11,13 @@ import type { ScrambleSource } from '../scramble/source'
 
 const scrambleSource: ScrambleSource = new ScrambowSource()
 
+// Module-level guard to ensure init runs only once per app lifecycle.
+// Exported so tests can reset it between runs.
+let initStarted = false
+export function __resetInitForTests(): void {
+  initStarted = false
+}
+
 interface StoreState {
   ready: boolean
   settings: Settings
@@ -32,6 +39,20 @@ interface StoreState {
   importData: (file: ExportFile, mode: 'merge' | 'replace') => Promise<void>
 }
 
+// Private helper: update a solve by id with a partial patch, persist, and reflect in state.
+async function updateSolveFields(
+  get: () => StoreState,
+  set: (partial: Partial<StoreState>) => void,
+  id: string,
+  patch: Partial<Solve>,
+): Promise<void> {
+  const solve = get().solves.find((s) => s.id === id)
+  if (!solve) return
+  const updated = { ...solve, ...patch }
+  await putSolve(updated)
+  set({ solves: get().solves.map((s) => (s.id === id ? updated : s)) })
+}
+
 export const useStore = create<StoreState>((set, get) => ({
   ready: false,
   settings: defaultSettings('placeholder'),
@@ -40,6 +61,10 @@ export const useStore = create<StoreState>((set, get) => ({
   scramble: '',
 
   init: async () => {
+    // Fix 3: idempotent init — module-level guard prevents double-run in StrictMode.
+    if (initStarted) return
+    initStarted = true
+
     let sessions = await getAllSessions()
     if (sessions.length === 0) {
       const session: Session = { id: uid(), name: 'Main', createdAt: Date.now() }
@@ -58,29 +83,23 @@ export const useStore = create<StoreState>((set, get) => ({
   newScramble: () => set({ scramble: scrambleSource.next() }),
 
   addSolve: async (timeMs, penalty) => {
-    const { settings, solves } = get()
+    const { settings } = get()
     const solve: Solve = {
       id: uid(), sessionId: settings.activeSessionId, timeMs, penalty,
       scramble: get().scramble, createdAt: Date.now(),
     }
     await putSolve(solve)
-    set({ solves: [...solves, solve], scramble: scrambleSource.next() })
+    // Fix 4: read fresh solves after await to avoid concurrency loss.
+    set({ solves: [...get().solves, solve], scramble: scrambleSource.next() })
   },
 
+  // Fix 5: delegate to shared private helper.
   setPenalty: async (id, penalty) => {
-    const solve = get().solves.find((s) => s.id === id)
-    if (!solve) return
-    const updated = { ...solve, penalty }
-    await putSolve(updated)
-    set({ solves: get().solves.map((s) => (s.id === id ? updated : s)) })
+    await updateSolveFields(get, set, id, { penalty })
   },
 
   setComment: async (id, comment) => {
-    const solve = get().solves.find((s) => s.id === id)
-    if (!solve) return
-    const updated = { ...solve, comment }
-    await putSolve(updated)
-    set({ solves: get().solves.map((s) => (s.id === id ? updated : s)) })
+    await updateSolveFields(get, set, id, { comment })
   },
 
   deleteSolve: async (id) => {
@@ -129,17 +148,33 @@ export const useStore = create<StoreState>((set, get) => ({
       saveSettings(file.settings)
       set({ settings: file.settings })
     }
-    if (file.sessions && file.solves) {
-      if (mode === 'replace') await replaceAll(file.sessions, file.solves)
-      else await bulkPut(file.sessions, file.solves)
+
+    // Fix 1: handle sessions/solves independently — a valid ExportFile may have one without the other.
+    if (file.sessions !== undefined || file.solves !== undefined) {
+      const sessions = file.sessions ?? []
+      const solves = file.solves ?? []
+      if (mode === 'replace') {
+        await replaceAll(sessions, solves)
+      } else {
+        await bulkPut(sessions, solves)
+      }
     }
-    const sessions = await getAllSessions()
+
+    let sessions = await getAllSessions()
+
+    // Fix 2: if DB is now empty (e.g. replace with empty sessions), create a default session.
+    if (sessions.length === 0) {
+      const session: Session = { id: uid(), name: 'Main', createdAt: Date.now() }
+      await putSession(session)
+      sessions = [session]
+    }
+
     let settings = get().settings
-    if (!sessions.some((s) => s.id === settings.activeSessionId) && sessions.length) {
+    if (!sessions.some((s) => s.id === settings.activeSessionId)) {
       settings = { ...settings, activeSessionId: sessions[0].id }
       saveSettings(settings)
     }
-    const solves = sessions.length ? await getSolvesBySession(settings.activeSessionId) : []
+    const solves = await getSolvesBySession(settings.activeSessionId)
     set({ sessions, settings, solves })
   },
 }))

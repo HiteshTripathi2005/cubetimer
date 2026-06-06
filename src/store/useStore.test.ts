@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import 'fake-indexeddb/auto'
-import { useStore } from './useStore'
+import { useStore, __resetInitForTests } from './useStore'
 import { replaceAll } from '../storage/db'
 import { SETTINGS_KEY } from '../storage/settings'
 
@@ -9,6 +9,8 @@ beforeEach(async () => {
   await replaceAll([], [])
   // reset store to a clean slate between tests
   useStore.setState({ ready: false, sessions: [], solves: [], scramble: '' })
+  // Fix 3: reset the module-level init guard so each test can call init() cleanly
+  __resetInitForTests()
 })
 
 describe('store init', () => {
@@ -20,6 +22,14 @@ describe('store init', () => {
     expect(st.settings.activeSessionId).toBe(st.sessions[0].id)
     expect(localStorage.getItem(SETTINGS_KEY)).not.toBeNull()
     expect(st.scramble.length).toBeGreaterThan(0)
+  })
+
+  it('is idempotent — double init does not duplicate the default session', async () => {
+    await useStore.getState().init()
+    // Second call must be blocked by the module guard (initStarted is still true)
+    await useStore.getState().init()
+    const st = useStore.getState()
+    expect(st.sessions.length).toBe(1)
   })
 })
 
@@ -48,5 +58,35 @@ describe('addSolve / setPenalty / deleteSolve', () => {
     const id = useStore.getState().solves[0].id
     await useStore.getState().deleteSolve(id)
     expect(useStore.getState().solves.length).toBe(0)
+  })
+})
+
+describe('importData', () => {
+  it('replace mode: replaces all data and falls back active session correctly', async () => {
+    await useStore.getState().init()
+    // Seed a solve in the original session
+    await useStore.getState().addSolve(9000, 'none')
+    expect(useStore.getState().solves.length).toBe(1)
+
+    // Import a fresh set of sessions+solves in replace mode
+    await useStore.getState().importData(
+      {
+        version: 1,
+        exportedAt: 0,
+        sessions: [{ id: 'imp', name: 'Imported', createdAt: 1 }],
+        solves: [{ id: 's1', sessionId: 'imp', timeMs: 5000, penalty: 'none', scramble: '', createdAt: 1 }],
+      },
+      'replace',
+    )
+
+    const st = useStore.getState()
+    // Only the imported session should exist
+    expect(st.sessions.length).toBe(1)
+    expect(st.sessions[0].id).toBe('imp')
+    // Active session should have been corrected to the imported one
+    expect(st.settings.activeSessionId).toBe('imp')
+    // Solves for the active session should be the imported solve
+    expect(st.solves.length).toBe(1)
+    expect(st.solves[0].id).toBe('s1')
   })
 })
