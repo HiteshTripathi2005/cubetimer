@@ -19,18 +19,22 @@ interface UseTimerReturn {
 
 export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTimerReturn {
   const [state, setState] = useState<TimerState>(initialTimerState)
-  const [display, setDisplay] = useState('0.00')
-  const [inspectionSeconds, setInspectionSeconds] = useState<number | null>(null)
+  const [runningDisplay, setRunningDisplay] = useState('0.00')
+  const [inspectionSecondsState, setInspectionSecondsState] = useState<number | null>(null)
 
   const stateRef = useRef(state)
-  stateRef.current = state
   const configRef = useRef(config)
-  configRef.current = config
   const onSolveRef = useRef(onSolve)
-  onSolveRef.current = onSolve
   const holdTimer = useRef<number | null>(null)
   const runningRaf = useRef<number | null>(null)
   const inspectionRaf = useRef<number | null>(null)
+
+  // sync latest-ref values after every render (standard "latest ref" pattern)
+  useEffect(() => {
+    stateRef.current = state
+    configRef.current = config
+    onSolveRef.current = onSolve
+  })
 
   const dispatch = useCallback((event: Omit<TimerEvent, 'now'> & { now?: number }) => {
     const now = event.now ?? performance.now()
@@ -63,7 +67,7 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
     if (state.phase === 'running' && state.solveStartedAt !== null) {
       const tick = () => {
         const elapsed = performance.now() - (stateRef.current.solveStartedAt ?? 0)
-        setDisplay(formatTime(elapsed, decimals))
+        setRunningDisplay(formatTime(elapsed, decimals))
         runningRaf.current = requestAnimationFrame(tick)
       }
       runningRaf.current = requestAnimationFrame(tick)
@@ -76,21 +80,13 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
     if (state.phase === 'inspecting' && state.inspectionStartedAt !== null) {
       const tick = () => {
         const elapsed = (performance.now() - (stateRef.current.inspectionStartedAt ?? 0)) / 1000
-        setInspectionSeconds(Math.max(0, Math.ceil(15 - elapsed)))
+        setInspectionSecondsState(Math.max(0, Math.ceil(15 - elapsed)))
         inspectionRaf.current = requestAnimationFrame(tick)
       }
       inspectionRaf.current = requestAnimationFrame(tick)
       return () => { if (inspectionRaf.current) cancelAnimationFrame(inspectionRaf.current) }
     }
-    setInspectionSeconds(null)
   }, [state.phase, state.inspectionStartedAt])
-
-  // reset display to last result when returning to idle
-  useEffect(() => {
-    if (state.phase === 'idle' && state.lastResult) {
-      setDisplay(formatTime(state.lastResult.elapsedMs, decimals))
-    }
-  }, [state.phase, state.lastResult, decimals])
 
   // keyboard + touch wiring
   useEffect(() => {
@@ -115,6 +111,12 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
       window.removeEventListener('keyup', onKeyUp)
     }
   }, [dispatch])
+
+  const display = state.phase === 'running'
+    ? runningDisplay
+    : (state.lastResult ? formatTime(state.lastResult.elapsedMs, decimals) : '0.00')
+
+  const inspectionSeconds = state.phase === 'inspecting' ? inspectionSecondsState : null
 
   return { phase: state.phase, display, inspectionSeconds }
 }

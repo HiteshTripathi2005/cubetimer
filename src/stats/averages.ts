@@ -64,12 +64,11 @@ export function formatTime(value: AverageResult, decimals: 2 | 3): string {
   if (value === 'DNF') return 'DNF'
   const totalSeconds = value / 1000
   let minutes = Math.floor(totalSeconds / 60)
-  let seconds = totalSeconds - minutes * 60
+  const seconds = totalSeconds - minutes * 60
   const secStr = seconds.toFixed(decimals)
   // toFixed may round 59.999 up to "60.00" — carry into minutes if so
   if (parseFloat(secStr) >= 60) {
     minutes += 1
-    seconds = 0
     const zeroStr = (0).toFixed(decimals).padStart(decimals + 3, '0')
     return `${minutes}:${zeroStr}`
   }
