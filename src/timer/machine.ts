@@ -70,8 +70,10 @@ export function reduce(state: TimerState, event: TimerEvent, config: TimerConfig
 
     case 'running':
       if (event.type === 'STOP') {
-        const elapsedMs = event.now - (state.solveStartedAt ?? event.now)
-        const penalty = inspectionPenalty(state.inspectionStartedAt, state.solveStartedAt ?? event.now)
+        if (state.solveStartedAt === null) return state
+        const solveStartedAt = state.solveStartedAt
+        const elapsedMs = event.now - solveStartedAt
+        const penalty = inspectionPenalty(state.inspectionStartedAt, solveStartedAt)
         return {
           phase: 'idle',
           inspectionStartedAt: null,

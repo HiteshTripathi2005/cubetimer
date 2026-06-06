@@ -68,4 +68,34 @@ describe('timer machine (inspection)', () => {
     st = reduce(st, { type: 'STOP', now: 27800 }, withInspect)
     expect(st.lastResult).toEqual({ elapsedMs: 10000, penalty: 'dnf' })
   })
+
+  it('none penalty when inspection is under 15s', () => {
+    let st = initialTimerState()
+    st = reduce(st, { type: 'PRESS', now: 0 }, withInspect)
+    st = reduce(st, { type: 'PRESS', now: 5000 }, withInspect)
+    st = reduce(st, { type: 'HOLD_ELAPSED', now: 5300 }, withInspect)
+    st = reduce(st, { type: 'RELEASE', now: 5300 }, withInspect)
+    st = reduce(st, { type: 'STOP', now: 15300 }, withInspect)
+    expect(st.lastResult).toEqual({ elapsedMs: 10000, penalty: 'none' })
+  })
+
+  it('none penalty at boundary of exactly 15000ms inspection (strict greater-than)', () => {
+    let st = initialTimerState()
+    st = reduce(st, { type: 'PRESS', now: 0 }, withInspect)
+    st = reduce(st, { type: 'PRESS', now: 14700 }, withInspect)
+    st = reduce(st, { type: 'HOLD_ELAPSED', now: 15000 }, withInspect)
+    st = reduce(st, { type: 'RELEASE', now: 15000 }, withInspect)
+    st = reduce(st, { type: 'STOP', now: 25000 }, withInspect)
+    expect(st.lastResult).toEqual({ elapsedMs: 10000, penalty: 'none' })
+  })
+
+  it('plus2 penalty at boundary of exactly 17000ms inspection (strict greater-than)', () => {
+    let st = initialTimerState()
+    st = reduce(st, { type: 'PRESS', now: 0 }, withInspect)
+    st = reduce(st, { type: 'PRESS', now: 16700 }, withInspect)
+    st = reduce(st, { type: 'HOLD_ELAPSED', now: 17000 }, withInspect)
+    st = reduce(st, { type: 'RELEASE', now: 17000 }, withInspect)
+    st = reduce(st, { type: 'STOP', now: 27000 }, withInspect)
+    expect(st.lastResult).toEqual({ elapsedMs: 10000, penalty: 'plus2' })
+  })
 })
