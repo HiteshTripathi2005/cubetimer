@@ -10,6 +10,20 @@ export type ValidateResult =
   | { ok: true; facelets: FaceKey[] }
   | { ok: false; message: string }
 
+// Count painted stickers per color (nulls ignored). Used to surface which colors
+// are off (≠ 9) so the UI can show a tally and highlight the offending stickers.
+export function colorCounts(grid: (FaceKey | null)[]): Record<FaceKey, number> {
+  const counts: Record<FaceKey, number> = { U: 0, R: 0, F: 0, D: 0, L: 0, B: 0 }
+  for (const c of grid) if (c !== null) counts[c] += 1
+  return counts
+}
+
+// The colors whose painted count is not exactly 9 (the ones a user must fix).
+export function offCountColors(grid: (FaceKey | null)[]): FaceKey[] {
+  const counts = colorCounts(grid)
+  return FACES.filter((f) => counts[f] !== 9)
+}
+
 export function validateGrid(grid: (FaceKey | null)[]): ValidateResult {
   if (grid.length !== 54) return { ok: false, message: 'Cube data is the wrong size.' }
   if (grid.some((c) => c === null)) {

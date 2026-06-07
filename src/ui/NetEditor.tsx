@@ -9,9 +9,11 @@ const ROWS = 9
 interface Props {
   grid: (FaceKey | null)[]
   onPaint: (index: number) => void
+  /** Colors to flag (e.g. the off-count colors) — their stickers get a ring. */
+  highlight?: FaceKey[]
 }
 
-export function NetEditor({ grid, onPaint }: Props) {
+export function NetEditor({ grid, onPaint, highlight }: Props) {
   return (
     <div
       className="grid gap-0.5 w-full max-w-xs"
@@ -20,11 +22,13 @@ export function NetEditor({ grid, onPaint }: Props) {
       {NET_CELLS.map((cell) => {
         const color = grid[cell.index]
         const isCenter = CENTERS.includes(cell.index)
+        const flagged = color !== null && highlight?.includes(color) === true
         return (
           <button
             key={cell.index}
             type="button"
             aria-label={`sticker ${cell.index}`}
+            data-highlight={flagged ? 'true' : 'false'}
             disabled={isCenter}
             onClick={() => onPaint(cell.index)}
             style={{
@@ -32,7 +36,9 @@ export function NetEditor({ grid, onPaint }: Props) {
               gridRow: cell.row + 1,
               backgroundColor: color ? FACE_COLORS[color] : '#d4d4d8',
             }}
-            className="rounded-[2px] border border-zinc-800/20 aspect-square"
+            className={`rounded-[2px] border border-zinc-800/20 aspect-square ${
+              flagged ? 'ring-2 ring-amber-400 outline outline-2 outline-amber-500 z-10 animate-pulse' : ''
+            }`}
           />
         )
       })}

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SolverPage } from './SolverPage'
 import { useSolverStore } from '../solver/store'
-import { applyMoves } from '../cube/state'
+import { applyMoves, solvedFacelets } from '../cube/state'
 
 // jsdom has no WebGL; stub Cube3D so the page renders without a real canvas.
 vi.mock('../cube/Cube3D', () => ({ Cube3D: () => null }))
@@ -43,5 +43,21 @@ describe('SolverPage (solve)', () => {
     render(<SolverPage />)
     fireEvent.click(screen.getByRole('button', { name: /^solve$/i }))
     await waitFor(() => expect(screen.getByText(/painted/i)).toBeInTheDocument())
+  })
+
+  it('on a count error, shows a color tally and rings the off-count stickers on the net', async () => {
+    useSolverStore.getState().resetToSolved()
+    const grid = [...solvedFacelets()]
+    grid[0] = 'L' // a U sticker painted orange → L=10, U=8
+    useSolverStore.setState({ grid })
+    render(<SolverPage />)
+    fireEvent.click(screen.getByRole('button', { name: /^solve$/i }))
+    await waitFor(() => expect(screen.getByText(/white stickers/i)).toBeInTheDocument())
+    // tally exists with at least two off-count chips
+    const tally = screen.getByLabelText('color tally')
+    const off = tally.querySelectorAll('[data-off="true"]')
+    expect(off.length).toBe(2) // L (10) and U (8)
+    // at least one net sticker is ringed (the orange ones)
+    expect(document.querySelectorAll('[data-highlight="true"]').length).toBeGreaterThan(0)
   })
 })
