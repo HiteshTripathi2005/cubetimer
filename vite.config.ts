@@ -26,7 +26,12 @@ export default defineConfig({
         if (id !== '\0virtual:cubejs-solver') return null
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const fs = require('node:fs') as typeof import('node:fs')
+        // Replace `require('./cube')` with a never-executed throw so rolldown's
+        // static analysis doesn't try to resolve the non-existent relative path
+        // inside the virtual module. At runtime this.Cube is always set (we pass
+        // { Cube } as `this`), so the require branch is dead code.
         const solveSrc = fs.readFileSync('./node_modules/cubejs/lib/solve.js', 'utf-8')
+          .replace("require('./cube')", "(() => { throw new Error('cubejs: Cube not injected') })()")
         return {
           code: `
 import Cube from 'cubejs/lib/cube'
