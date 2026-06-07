@@ -28,6 +28,7 @@ export function StatsCard({ solves, decimals }: Props) {
       <Stat label="best ao5" value={f(bestAverage(solves, 5))} />
       <Stat label="best ao12" value={f(bestAverage(solves, 12))} />
       <Stat label="ao100"    value={f(average(solves, 100))} />
+      <Stat label="best ao100" value={f(bestAverage(solves, 100))} />
     </div>
   )
 }

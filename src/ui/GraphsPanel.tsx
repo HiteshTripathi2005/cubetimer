@@ -1,5 +1,5 @@
 import type { Solve } from '../types'
-import { effectiveTime } from '../stats/averages'
+import { average, effectiveTime } from '../stats/averages'
 
 interface Props { solves: Solve[] }
 
@@ -22,9 +22,22 @@ export function GraphsPanel({ solves }: Props) {
     const y = h - ((t - min) / span) * h
     return `${x.toFixed(1)},${y.toFixed(1)}`
   })
+
+  const trendCoords: string[] = []
+  for (let i = 0; i < solves.length; i++) {
+    const ao5 = average(solves.slice(0, i + 1).slice(-5), 5)
+    if (typeof ao5 !== 'number') continue
+    const x = (i / (solves.length - 1)) * w
+    const y = h - ((ao5 - min) / span) * h
+    trendCoords.push(`${x.toFixed(1)},${y.toFixed(1)}`)
+  }
+
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto" role="img" aria-label="Solve times">
       <polyline points={coords.join(' ')} fill="none" stroke="#6366f1" strokeWidth={2} />
+      {trendCoords.length > 0 && (
+        <polyline points={trendCoords.join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />
+      )}
     </svg>
   )
 }
