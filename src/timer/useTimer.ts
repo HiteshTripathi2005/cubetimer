@@ -9,15 +9,53 @@ interface UseTimerArgs {
   config: TimerConfig
   onSolve: (timeMs: number, penalty: Penalty) => void
   decimals?: 2 | 3
+  audioCues?: boolean
+}
+
+interface PointerHandlers {
+  onPointerDown: (e: React.PointerEvent) => void
+  onPointerUp: (e: React.PointerEvent) => void
 }
 
 interface UseTimerReturn {
   phase: TimerState['phase']
   display: string
   inspectionSeconds: number | null
+  pointerHandlers: PointerHandlers
 }
 
-export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTimerReturn {
+// Lazy AudioContext singleton
+let audioCtx: AudioContext | null = null
+function getAudioContext(): AudioContext | null {
+  if (audioCtx) return audioCtx
+  try {
+    audioCtx = new AudioContext()
+    return audioCtx
+  } catch {
+    return null
+  }
+}
+
+function playBeep(frequency: number, durationS: number): void {
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = frequency
+    osc.type = 'sine'
+    gain.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationS)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + durationS)
+  } catch {
+    // silently degrade when AudioContext is unavailable or autoplay is blocked
+  }
+}
+
+export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: UseTimerArgs): UseTimerReturn {
   const [state, setState] = useState<TimerState>(initialTimerState)
   const [runningDisplay, setRunningDisplay] = useState('0.00')
   const [inspectionSecondsState, setInspectionSecondsState] = useState<number | null>(null)
@@ -25,15 +63,19 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
   const stateRef = useRef(state)
   const configRef = useRef(config)
   const onSolveRef = useRef(onSolve)
+  const audioCuesRef = useRef(audioCues)
   const holdTimer = useRef<number | null>(null)
   const runningRaf = useRef<number | null>(null)
   const inspectionRaf = useRef<number | null>(null)
+  const cue8Ref = useRef(false)
+  const cue12Ref = useRef(false)
 
   // sync latest-ref values after every render (standard "latest ref" pattern)
   useEffect(() => {
     stateRef.current = state
     configRef.current = config
     onSolveRef.current = onSolve
+    audioCuesRef.current = audioCues
   })
 
   const dispatch = useCallback((event: Omit<TimerEvent, 'now'> & { now?: number }) => {
@@ -75,12 +117,26 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
     }
   }, [state.phase, state.solveStartedAt, decimals])
 
-  // inspection countdown display
+  // inspection countdown display + audio cues
   useEffect(() => {
     if (state.phase === 'inspecting' && state.inspectionStartedAt !== null) {
+      // reset audio cue flags when inspection (re)starts
+      cue8Ref.current = false
+      cue12Ref.current = false
       const tick = () => {
         const elapsed = (performance.now() - (stateRef.current.inspectionStartedAt ?? 0)) / 1000
         setInspectionSecondsState(Math.max(0, Math.ceil(15 - elapsed)))
+        // audio cues at 8s and 12s elapsed — fire once each
+        if (audioCuesRef.current) {
+          if (!cue8Ref.current && elapsed >= 8) {
+            cue8Ref.current = true
+            playBeep(880, 0.15)
+          }
+          if (!cue12Ref.current && elapsed >= 12) {
+            cue12Ref.current = true
+            playBeep(1320, 0.2)
+          }
+        }
         inspectionRaf.current = requestAnimationFrame(tick)
       }
       inspectionRaf.current = requestAnimationFrame(tick)
@@ -88,7 +144,7 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
     }
   }, [state.phase, state.inspectionStartedAt])
 
-  // keyboard + touch wiring
+  // keyboard wiring
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
@@ -114,9 +170,27 @@ export function useTimer({ config, onSolve, decimals = 2 }: UseTimerArgs): UseTi
 
   const display = state.phase === 'running'
     ? runningDisplay
-    : (state.lastResult ? formatTime(state.lastResult.elapsedMs, decimals) : '0.00')
+    : (state.lastResult ? formatTime(state.lastResult.elapsedMs, decimals) : (0).toFixed(decimals))
 
   const inspectionSeconds = state.phase === 'inspecting' ? inspectionSecondsState : null
 
-  return { phase: state.phase, display, inspectionSeconds }
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    if (stateRef.current.phase === 'running') dispatch({ type: 'STOP' })
+    else dispatch({ type: 'PRESS' })
+  }, [dispatch])
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    if (stateRef.current.phase === 'holding' || stateRef.current.phase === 'ready') {
+      dispatch({ type: 'RELEASE' })
+    }
+  }, [dispatch])
+
+  return {
+    phase: state.phase,
+    display,
+    inspectionSeconds,
+    pointerHandlers: { onPointerDown, onPointerUp },
+  }
 }

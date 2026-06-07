@@ -25,10 +25,11 @@ export function App() {
   const init = useStore((st) => st.init)
   useEffect(() => { void init() }, [init])
 
-  const { phase, display, inspectionSeconds } = useTimer({
+  const { phase, display, inspectionSeconds, pointerHandlers } = useTimer({
     config: { inspection: s.settings.inspection, holdToStartMs: s.settings.holdToStartMs },
     onSolve: (ms, penalty) => { void s.addSolve(ms, penalty) },
     decimals: s.settings.decimalPlaces,
+    audioCues: s.settings.inspectionAudioCues,
   })
 
   if (!s.ready) {
@@ -64,7 +65,11 @@ export function App() {
         {/* Left: scramble + timer */}
         <section className="flex flex-col">
           <ScrambleBar scramble={s.scramble} onNewScramble={() => s.newScramble()} />
-          <div className="flex-1 grid place-items-center">
+          <div
+            className="flex-1 grid place-items-center touch-none"
+            style={{ touchAction: 'none' }}
+            {...pointerHandlers}
+          >
             <TimerDisplay phase={phase} display={display} inspectionSeconds={inspectionSeconds} />
           </div>
         </section>
