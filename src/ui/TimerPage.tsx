@@ -47,7 +47,6 @@ export function TimerPage() {
   return (
     <div className="h-full mx-auto max-w-6xl px-4 py-4 flex flex-col gap-4">
       <header className="flex items-center justify-between">
-        <h1 className="font-semibold text-zinc-700 dark:text-zinc-200">CubeTimer</h1>
         <div className="flex items-center gap-2">
           <SessionBar
             sessions={s.sessions} activeId={s.settings.activeSessionId}
@@ -96,7 +95,7 @@ export function TimerPage() {
       </div>
 
       {showSettings && (
-        <div className="fixed right-4 top-16 z-40 w-72 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-lg">
+        <div className="fixed right-4 top-24 z-40 w-72 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-lg">
           <SettingsPanel
             settings={s.settings}
             onChange={(patch) => s.updateSettings(patch)}

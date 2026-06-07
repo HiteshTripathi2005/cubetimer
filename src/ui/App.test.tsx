@@ -3,9 +3,8 @@ import 'fake-indexeddb/auto'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { App } from './App'
-import { useStore } from '../store/useStore'
+import { useStore, __resetInitForTests } from '../store/useStore'
 import { replaceAll } from '../storage/db'
-import { __resetInitForTests } from '../store/useStore'
 
 beforeEach(async () => {
   localStorage.clear()
