@@ -19,6 +19,7 @@ export function ImportExportDialog({ onExport, onImport, onClose }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const handleFile = async (file: File, mode: 'merge' | 'replace') => {
+    setError(null)
     try {
       const text = await file.text()
       onImport(parseImport(text), mode)
@@ -37,11 +38,11 @@ export function ImportExportDialog({ onExport, onImport, onClose }: Props) {
         <fieldset className="mb-4">
           <legend className="text-sm text-zinc-500 mb-2">What to export</legend>
           <label className="flex items-center gap-2 py-1">
-            <input type="radio" name="scope" checked={scope === 'settings'} onChange={() => setScope('settings')} />
+            <input type="radio" name="scope" value="settings" checked={scope === 'settings'} onChange={() => setScope('settings')} />
             <span>Settings only</span>
           </label>
           <label className="flex items-center gap-2 py-1">
-            <input type="radio" name="scope" checked={scope === 'all'} onChange={() => setScope('all')} />
+            <input type="radio" name="scope" value="all" checked={scope === 'all'} onChange={() => setScope('all')} />
             <span>Settings + all solves</span>
           </label>
           <button type="button" onClick={() => onExport(SCOPE_TO_OPTS[scope])}
@@ -56,12 +57,12 @@ export function ImportExportDialog({ onExport, onImport, onClose }: Props) {
             <label className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-2 cursor-pointer">
               Merge
               <input type="file" accept="application/json" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f, 'merge') }} />
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void handleFile(f, 'merge') }} />
             </label>
             <label className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-2 cursor-pointer">
               Replace
               <input type="file" accept="application/json" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f, 'replace') }} />
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void handleFile(f, 'replace') }} />
             </label>
           </div>
           {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
