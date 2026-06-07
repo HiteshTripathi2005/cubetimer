@@ -8,13 +8,13 @@ import { MoveList } from './MoveList'
 import { PlaybackControls } from './PlaybackControls'
 import { selectDisplayGrid } from '../cube/playback'
 import { colorCounts, offCountColors } from '../solver/validate'
-import { usePlayback } from '../hooks/usePlayback'
+import { useSolvePlayback } from '../hooks/useSolvePlayback'
 
 const TALLY_FACES: FaceKey[] = ['U', 'R', 'F', 'D', 'L', 'B']
 
 export function SolverPage() {
-  usePlayback()
   const s = useSolverStore()
+  const playback = useSolvePlayback()
   const display = selectDisplayGrid({
     grid: s.grid, inputFacelets: s.inputFacelets, solution: s.solution, playbackIndex: s.playbackIndex,
   })
@@ -27,7 +27,20 @@ export function SolverPage() {
     <div className="h-full mx-auto max-w-6xl px-4 py-4 grid gap-6 md:grid-cols-[1.3fr_1fr]">
       {/* Left: input */}
       <section className="flex flex-col gap-4 min-h-0">
-        <Cube3D grid={display} onPaint={painting ? s.paintSticker : () => {}} />
+        <div className="relative">
+          <Cube3D
+            grid={display}
+            onPaint={painting ? s.paintSticker : undefined}
+            animateMove={playback.animateMove}
+            speedMs={s.speedMs}
+            onMoveAnimated={playback.onMoveAnimated}
+          />
+          {!painting && playback.currentLabel && (
+            <span className="absolute left-2 top-2 rounded-md bg-zinc-900/80 px-2 py-1 font-mono text-sm text-white">
+              {playback.currentLabel}
+            </span>
+          )}
+        </div>
         {painting && <>
           <ColorPalette active={s.activeColor} onSelect={s.setActiveColor} />
           <NetEditor grid={s.grid} onPaint={s.paintSticker} highlight={offColors} />
@@ -84,9 +97,9 @@ export function SolverPage() {
         {s.solution && <>
           <MoveList solution={s.solution} playbackIndex={s.playbackIndex} />
           <PlaybackControls
-            isPlaying={s.isPlaying} speedMs={s.speedMs}
-            onPlay={s.play} onPause={s.pause}
-            onStepForward={s.stepForward} onStepBack={s.stepBack} onSpeed={s.setSpeed}
+            isPlaying={playback.isPlaying} speedMs={s.speedMs}
+            onPlay={playback.play} onPause={playback.pause}
+            onStepForward={playback.next} onStepBack={playback.prev} onSpeed={s.setSpeed}
           />
         </>}
         {!s.solution && s.status !== 'error' && <p className="text-zinc-400 text-sm">Paint your cube, then press Solve.</p>}
