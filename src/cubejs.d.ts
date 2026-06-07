@@ -11,3 +11,15 @@ declare module 'cubejs/lib/cube' {
     randomize(): this
   }
 }
+
+declare module 'virtual:cubejs-solver' {
+  export default class Cube {
+    constructor(state?: unknown)
+    move(algorithm: string): this
+    asString(): string
+    solve(maxDepth?: number): string
+    static fromString(str: string): Cube
+    static random(): Cube
+    static initSolver(): void
+  }
+}

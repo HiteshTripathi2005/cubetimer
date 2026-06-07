@@ -10,6 +10,35 @@ export default defineConfig({
     tailwindcss(),
     react(),
     babel({ presets: [reactCompilerPreset()] }),
+    // cubejs's lib/solve.js is an IIFE: (function(){ ... }).call(this), and its first
+    // line `Cube = this.Cube || require('./cube')` throws in the browser because top-level
+    // `this` is undefined under ESM. We expose `virtual:cubejs-solver`: it imports the
+    // cube-only class, then runs solve.js with `this = { Cube }` so the solver attaches to it.
+    // Normal compiled module — no eval / no unsafe-eval.
+    {
+      name: 'cubejs-solver',
+      enforce: 'pre' as const,
+      resolveId(id: string) {
+        if (id === 'virtual:cubejs-solver') return '\0virtual:cubejs-solver'
+        return null
+      },
+      load(id: string) {
+        if (id !== '\0virtual:cubejs-solver') return null
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require('node:fs') as typeof import('node:fs')
+        const solveSrc = fs.readFileSync('./node_modules/cubejs/lib/solve.js', 'utf-8')
+        return {
+          code: `
+import Cube from 'cubejs/lib/cube'
+;(function () {
+${solveSrc}
+}).call({ Cube })
+export default Cube
+`,
+          map: null,
+        }
+      },
+    },
     // scrambow ships a UMD bundle where short variable names (e, r, f, t…)
     // are legally re-declared across nested function scopes using var-hoisting.
     // Rolldown (Vite 8) incorrectly rejects these as illegal duplicate
