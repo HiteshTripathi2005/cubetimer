@@ -2,29 +2,58 @@ import { useSolverStore } from '../solver/store'
 import { Cube3D } from '../cube/Cube3D'
 import { NetEditor } from './NetEditor'
 import { ColorPalette } from './ColorPalette'
+import { MoveList } from './MoveList'
+import { PlaybackControls } from './PlaybackControls'
+import { selectDisplayGrid } from '../cube/playback'
+import { usePlayback } from '../hooks/usePlayback'
 
 export function SolverPage() {
-  const grid = useSolverStore((s) => s.grid)
-  const activeColor = useSolverStore((s) => s.activeColor)
-  const { paintSticker, setActiveColor, resetToSolved, clear, scramble } = useSolverStore.getState()
+  usePlayback()
+  const s = useSolverStore()
+  const display = selectDisplayGrid({
+    grid: s.grid, inputFacelets: s.inputFacelets, solution: s.solution, playbackIndex: s.playbackIndex,
+  })
+  const painting = s.solution === null
 
   return (
     <div className="h-full mx-auto max-w-6xl px-4 py-4 grid gap-6 md:grid-cols-[1.3fr_1fr]">
       {/* Left: input */}
       <section className="flex flex-col gap-4 min-h-0">
-        <Cube3D grid={grid} onPaint={paintSticker} />
-        <ColorPalette active={activeColor} onSelect={setActiveColor} />
-        <NetEditor grid={grid} onPaint={paintSticker} />
-        <div className="flex gap-2">
-          <button type="button" onClick={resetToSolved} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Reset</button>
-          <button type="button" onClick={clear} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Clear</button>
-          <button type="button" onClick={scramble} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Scramble</button>
-        </div>
+        <Cube3D grid={display} onPaint={painting ? s.paintSticker : () => {}} />
+        {painting && <>
+          <ColorPalette active={s.activeColor} onSelect={s.setActiveColor} />
+          <NetEditor grid={s.grid} onPaint={s.paintSticker} />
+          <div className="flex gap-2">
+            <button type="button" onClick={s.resetToSolved} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Reset</button>
+            <button type="button" onClick={s.clear} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Clear</button>
+            <button type="button" onClick={s.scramble} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Scramble</button>
+          </div>
+        </>}
+        {!painting && (
+          <button type="button" onClick={s.clearSolution} className="self-start rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Edit cube</button>
+        )}
       </section>
 
-      {/* Right: solution (Phase 2 fills this in) */}
-      <aside className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-4 text-zinc-400">
-        Paint your cube, then solving lands here.
+      {/* Right: solution */}
+      <aside className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-4 flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => void s.solveCurrent()}
+          disabled={s.status === 'solving'}
+          className="self-start rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500 disabled:opacity-50"
+        >
+          {s.status === 'solving' ? 'Solving…' : 'Solve'}
+        </button>
+        {s.status === 'error' && <p className="text-sm text-red-500">{s.error}</p>}
+        {s.solution && <>
+          <MoveList solution={s.solution} playbackIndex={s.playbackIndex} />
+          <PlaybackControls
+            isPlaying={s.isPlaying} speedMs={s.speedMs}
+            onPlay={s.play} onPause={s.pause}
+            onStepForward={s.stepForward} onStepBack={s.stepBack} onSpeed={s.setSpeed}
+          />
+        </>}
+        {!s.solution && s.status !== 'error' && <p className="text-zinc-400 text-sm">Paint your cube, then press Solve.</p>}
       </aside>
     </div>
   )
