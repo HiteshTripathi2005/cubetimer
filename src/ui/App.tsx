@@ -25,6 +25,40 @@ export function App() {
   const init = useStore((st) => st.init)
   useEffect(() => { void init() }, [init])
 
+  // Sync the `theme` setting to a `.dark` class on <html> so Tailwind's
+  // class-based dark variant (registered via @custom-variant in index.css) works.
+  const theme = s.settings.theme
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+      return
+    }
+    if (theme === 'light') {
+      root.classList.remove('dark')
+      return
+    }
+    // 'system': follow the OS preference and update live.
+    if (typeof window.matchMedia !== 'function') {
+      // jsdom / test environments may not implement matchMedia; treat as light.
+      root.classList.remove('dark')
+      return
+    }
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => {
+      if (mq.matches) {
+        root.classList.add('dark')
+      } else {
+        root.classList.remove('dark')
+      }
+    }
+    apply()
+    mq.addEventListener('change', apply)
+    return () => {
+      mq.removeEventListener('change', apply)
+    }
+  }, [theme])
+
   const { phase, display, inspectionSeconds, pointerHandlers } = useTimer({
     config: { inspection: s.settings.inspection, holdToStartMs: s.settings.holdToStartMs },
     onSolve: (ms, penalty) => { void s.addSolve(ms, penalty) },
