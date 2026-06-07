@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 import { useStore, __resetInitForTests } from './useStore'
 import { replaceAll } from '../storage/db'
@@ -58,6 +58,33 @@ describe('addSolve / setPenalty / deleteSolve', () => {
     const id = useStore.getState().solves[0].id
     await useStore.getState().deleteSolve(id)
     expect(useStore.getState().solves.length).toBe(0)
+  })
+})
+
+describe('error resilience', () => {
+  it('init resilience: DB failure → ready=true with fallback session and non-empty scramble', async () => {
+    // Arrange: make getAllSessions reject to simulate corrupt/inaccessible IndexedDB.
+    const db = await import('../storage/db')
+    const spy = vi.spyOn(db, 'getAllSessions').mockRejectedValueOnce(new Error('IDB unavailable'))
+
+    await useStore.getState().init()
+    spy.mockRestore()
+
+    const st = useStore.getState()
+    expect(st.ready).toBe(true)
+    expect(st.sessions.length).toBe(1)
+    expect(st.sessions[0].name).toBe('Main')
+    expect(st.scramble.length).toBeGreaterThan(0)
+  })
+
+  it('safe scramble: newScramble() never throws and always leaves scramble a non-empty string', async () => {
+    // The module-singleton scrambleSource is not exported, so we test observable behaviour:
+    // even if the underlying source were broken, safeScramble catches the error and returns
+    // the sentinel string. Here we verify the happy-path: newScramble() returns a non-empty
+    // string without throwing.
+    await useStore.getState().init()
+    expect(() => useStore.getState().newScramble()).not.toThrow()
+    expect(useStore.getState().scramble.length).toBeGreaterThan(0)
   })
 })
 

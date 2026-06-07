@@ -11,6 +11,20 @@ import type { ScrambleSource } from '../scramble/source'
 
 const scrambleSource: ScrambleSource = new ScrambowSource()
 
+// Fix 2: safe scramble wrapper — one retry, then sentinel fallback.
+const SCRAMBLE_FALLBACK = '— scramble unavailable —'
+function safeScramble(): string {
+  try {
+    return scrambleSource.next()
+  } catch {
+    try {
+      return scrambleSource.next()
+    } catch {
+      return SCRAMBLE_FALLBACK
+    }
+  }
+}
+
 // Module-level guard to ensure init runs only once per app lifecycle.
 // Exported so tests can reset it between runs.
 let initStarted = false
@@ -65,22 +79,29 @@ export const useStore = create<StoreState>((set, get) => ({
     if (initStarted) return
     initStarted = true
 
-    let sessions = await getAllSessions()
-    if (sessions.length === 0) {
+    try {
+      let sessions = await getAllSessions()
+      if (sessions.length === 0) {
+        const session: Session = { id: uid(), name: 'Main', createdAt: Date.now() }
+        await putSession(session)
+        sessions = [session]
+      }
+      let settings = loadSettings()
+      if (!settings || !sessions.some((s) => s.id === settings!.activeSessionId)) {
+        settings = defaultSettings(sessions[0].id)
+        saveSettings(settings)
+      }
+      const solves = await getSolvesBySession(settings.activeSessionId)
+      set({ ready: true, settings, sessions, solves, scramble: safeScramble() })
+    } catch {
+      // Fix 1: DB failure fallback — never leave ready=false / hang on loading screen.
       const session: Session = { id: uid(), name: 'Main', createdAt: Date.now() }
-      await putSession(session)
-      sessions = [session]
+      const settings = defaultSettings(session.id)
+      set({ ready: true, settings, sessions: [session], solves: [], scramble: safeScramble() })
     }
-    let settings = loadSettings()
-    if (!settings || !sessions.some((s) => s.id === settings!.activeSessionId)) {
-      settings = defaultSettings(sessions[0].id)
-      saveSettings(settings)
-    }
-    const solves = await getSolvesBySession(settings.activeSessionId)
-    set({ ready: true, settings, sessions, solves, scramble: scrambleSource.next() })
   },
 
-  newScramble: () => set({ scramble: scrambleSource.next() }),
+  newScramble: () => set({ scramble: safeScramble() }),
 
   addSolve: async (timeMs, penalty) => {
     const { settings } = get()
@@ -90,7 +111,7 @@ export const useStore = create<StoreState>((set, get) => ({
     }
     await putSolve(solve)
     // Fix 4: read fresh solves after await to avoid concurrency loss.
-    set({ solves: [...get().solves, solve], scramble: scrambleSource.next() })
+    set({ solves: [...get().solves, solve], scramble: safeScramble() })
   },
 
   // Fix 5: delegate to shared private helper.
