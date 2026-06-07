@@ -1,4 +1,8 @@
-import Cube from 'cubejs'
+// Import the cube-only submodule, not the package root. The package root also
+// pulls in lib/solve.js (the two-phase solver, unused in v1), whose top-level
+// `this.Cube` read throws in the browser's ESM context (top-level `this` is
+// undefined). cube.js alone covers move()/asString() and never reads top-level `this`.
+import Cube from 'cubejs/lib/cube'
 
 export type FaceKey = 'U' | 'R' | 'F' | 'D' | 'L' | 'B'
 
