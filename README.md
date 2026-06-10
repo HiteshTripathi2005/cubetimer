@@ -73,3 +73,19 @@ export default defineConfig([
   },
 ])
 ```
+
+## Mobile app (Capacitor)
+
+The app ships as a native Android/iOS app via [Capacitor](https://capacitorjs.com). The native
+projects live in `android/` and `ios/`; the web build (`dist/`) is the app's UI.
+
+```bash
+npm run cap:sync      # build the web app and copy it into both native projects
+npm run cap:android   # build + sync + open in Android Studio (run ▶ from there)
+npm run cap:ios       # build + sync + open in Xcode (run ▶ from there)
+```
+
+Camera permission for the cube scanner is already declared (`CAMERA` in
+`android/app/src/main/AndroidManifest.xml`, `NSCameraUsageDescription` in
+`ios/App/App/Info.plist`). After changing web code, re-run `npm run cap:sync`
+before rebuilding the native app.
