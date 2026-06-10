@@ -48,6 +48,10 @@ export function warmSolver(): void {
   post(getWorker(), { type: 'init' })
 }
 
+// Safety net: validation should reject unsolvable states up front, but if the
+// solver ever runs away anyway, kill the worker instead of hanging the UI.
+const SOLVE_TIMEOUT_MS = 60_000
+
 export async function solveAsync(facelets: FaceKey[]): Promise<string[]> {
   if (typeof Worker === 'undefined') {
     const { solveFacelets } = await import('./solve')
@@ -55,7 +59,16 @@ export async function solveAsync(facelets: FaceKey[]): Promise<string[]> {
   }
   const id = nextId++
   return new Promise<string[]>((resolve, reject) => {
-    pending.set(id, { resolve, reject })
+    const timer = setTimeout(() => {
+      pending.delete(id)
+      worker?.terminate()
+      worker = null
+      reject(new SolverError('The solver timed out — this cube state may be impossible. Re-check the colors and try again.'))
+    }, SOLVE_TIMEOUT_MS)
+    pending.set(id, {
+      resolve: (moves) => { clearTimeout(timer); resolve(moves) },
+      reject: (err) => { clearTimeout(timer); reject(err) },
+    })
     post(getWorker(), { type: 'solve', id, facelets })
   })
 }

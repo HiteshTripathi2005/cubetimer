@@ -1,4 +1,5 @@
 import type { FaceKey } from '../facelets/facelets'
+import { validatePieces } from './pieces'
 
 const FACES: FaceKey[] = ['U', 'R', 'F', 'D', 'L', 'B']
 const CENTER_INDICES = [4, 13, 22, 31, 40, 49]
@@ -47,6 +48,11 @@ export function validateGrid(grid: (FaceKey | null)[]): ValidateResult {
       return { ok: false, message: `You have ${n} ${FACE_NAMES[face]} stickers (need 9).` }
     }
   }
+
+  // Counts being right doesn't make the cube solvable — check the pieces too,
+  // otherwise the solver searches forever on an impossible state.
+  const pieces = validatePieces(facelets)
+  if (!pieces.ok) return pieces
 
   return { ok: true, facelets }
 }
