@@ -41,7 +41,7 @@ export function ScramblePreview({ scramble }: Props) {
   const width = 12 * cell
   const height = 9 * cell
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" role="img" aria-label="Scramble preview">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto max-h-44" role="img" aria-label="Scramble preview">
       {rects}
     </svg>
   )

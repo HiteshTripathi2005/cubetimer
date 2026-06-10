@@ -45,7 +45,7 @@ export function TimerPage() {
   }
 
   return (
-    <div className="h-full w-full px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4">
+    <div className="h-full w-full px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4 md:overflow-hidden">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SessionBar
@@ -60,9 +60,9 @@ export function TimerPage() {
         </div>
       </header>
 
-      <div className="flex-1 grid gap-6 md:grid-cols-[1.6fr_1fr] xl:grid-cols-[2.2fr_1fr]">
+      <div className="flex-1 min-h-0 grid gap-6 md:grid-cols-[1.6fr_1fr] xl:grid-cols-[2.2fr_1fr]">
         {/* Left: scramble + timer */}
-        <section className="flex flex-col">
+        <section className="flex flex-col min-h-0">
           <ScrambleBar scramble={s.scramble} onNewScramble={() => s.newScramble()} />
           <div
             className="flex-1 grid place-items-center touch-none"
@@ -84,10 +84,10 @@ export function TimerPage() {
                 onDelete={(id) => void s.deleteSolve(id)}
               />
             </div>
-            <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-2">
+            <div className="shrink-0 rounded-xl border border-zinc-100 dark:border-zinc-800 p-2">
               <ScramblePreview scramble={s.scramble} />
             </div>
-            <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-2">
+            <div className="shrink-0 rounded-xl border border-zinc-100 dark:border-zinc-800 p-2">
               <GraphsPanel solves={s.solves} />
             </div>
           </aside>

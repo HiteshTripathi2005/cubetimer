@@ -18,7 +18,7 @@ function label(solve: Solve, decimals: 2 | 3): string {
 export function SolveList({ solves, decimals, onSetPenalty, onDelete }: Props) {
   const ordered = [...solves].reverse() // newest first
   return (
-    <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 overflow-y-auto">
+    <ul className="max-h-full h-full divide-y divide-zinc-100 dark:divide-zinc-800 overflow-y-auto">
       {ordered.map((solve, i) => (
         <li key={solve.id} className="flex items-center gap-2 px-2 py-1.5 text-sm">
           <span className="w-6 text-right text-zinc-400">{ordered.length - i}</span>

@@ -102,7 +102,7 @@ function Scene({ grid, onPaint, animateMove, speedMs, onMoveAnimated }: ScenePro
   const inLayer = (c: Cubie): boolean => {
     if (!move) return false
     const i = move.axis === 'x' ? 0 : move.axis === 'y' ? 1 : 2
-    return c.position[i] === move.slice
+    return move.slices.includes(c.position[i])
   }
 
   return (

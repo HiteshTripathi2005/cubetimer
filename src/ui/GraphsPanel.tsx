@@ -33,7 +33,7 @@ export function GraphsPanel({ solves }: Props) {
   }
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto" role="img" aria-label="Solve times">
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto max-h-28" role="img" aria-label="Solve times">
       <polyline points={coords.join(' ')} fill="none" stroke="#6366f1" strokeWidth={2} />
       {trendCoords.length > 0 && (
         <polyline points={trendCoords.join(' ')} fill="none" stroke="#f59e0b" strokeWidth={2} />

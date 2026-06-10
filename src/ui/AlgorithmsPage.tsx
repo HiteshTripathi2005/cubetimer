@@ -3,6 +3,7 @@ import type { AlgCase } from '../algs/types'
 import { OLL_CASES } from '../algs/oll'
 import { PLL_CASES } from '../algs/pll'
 import { CaseDiagram } from './CaseDiagram'
+import { CaseViewer } from './CaseViewer'
 
 type Tab = 'OLL' | 'PLL'
 
@@ -21,17 +22,26 @@ function groupCases(cases: AlgCase[]): [string, AlgCase[]][] {
   return [...groups.entries()]
 }
 
-function CaseCard({ c, kind }: { c: AlgCase; kind: Tab }) {
+function CaseCard({ c, kind, onView }: { c: AlgCase; kind: Tab; onView: (c: AlgCase) => void }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
+    <div className="relative flex items-center gap-3 rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
       <CaseDiagram alg={c.alg} kind={kind} />
-      <div className="min-w-0">
+      <div className="min-w-0 pr-8">
         <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
           {c.id}
           {c.name !== c.id && <span className="ml-1.5 font-normal text-zinc-400">{c.name}</span>}
         </p>
         <p className="mt-1 font-mono text-sm text-zinc-600 dark:text-zinc-300 break-words">{c.alg}</p>
       </div>
+      <button
+        type="button"
+        aria-label={`Play ${c.id} in 3D`}
+        title="Watch on the 3D cube"
+        onClick={() => onView(c)}
+        className="absolute right-2 top-2 rounded-md px-2 py-1 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+      >
+        ▶
+      </button>
     </div>
   )
 }
@@ -39,6 +49,7 @@ function CaseCard({ c, kind }: { c: AlgCase; kind: Tab }) {
 export function AlgorithmsPage() {
   const [tab, setTab] = useState<Tab>('OLL')
   const [query, setQuery] = useState('')
+  const [viewing, setViewing] = useState<AlgCase | null>(null)
   const cases = tab === 'OLL' ? OLL_CASES : PLL_CASES
   const q = query.trim().toLowerCase()
   const grouped = useMemo(() => {
@@ -81,11 +92,13 @@ export function AlgorithmsPage() {
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">{group}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {list.map((c) => (
-              <CaseCard key={c.id} c={c} kind={tab} />
+              <CaseCard key={c.id} c={c} kind={tab} onView={setViewing} />
             ))}
           </div>
         </section>
       ))}
+
+      {viewing && <CaseViewer key={viewing.id} algCase={viewing} onClose={() => setViewing(null)} />}
     </div>
   )
 }
