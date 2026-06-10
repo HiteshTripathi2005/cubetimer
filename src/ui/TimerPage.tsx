@@ -45,7 +45,7 @@ export function TimerPage() {
   }
 
   return (
-    <div className="h-full mx-auto max-w-6xl px-4 py-4 flex flex-col gap-4">
+    <div className="h-full w-full px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SessionBar
@@ -60,7 +60,7 @@ export function TimerPage() {
         </div>
       </header>
 
-      <div className="flex-1 grid gap-6 md:grid-cols-[1.6fr_1fr]">
+      <div className="flex-1 grid gap-6 md:grid-cols-[1.6fr_1fr] xl:grid-cols-[2.2fr_1fr]">
         {/* Left: scramble + timer */}
         <section className="flex flex-col">
           <ScrambleBar scramble={s.scramble} onNewScramble={() => s.newScramble()} />

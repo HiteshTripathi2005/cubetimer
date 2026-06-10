@@ -129,7 +129,7 @@ interface Props {
 
 export function Cube3D({ grid, onPaint, animateMove = null, speedMs = 600, onMoveAnimated }: Props) {
   return (
-    <div className="w-full aspect-square max-w-md mx-auto">
+    <div className="w-full aspect-square max-w-md md:max-w-lg xl:max-w-xl mx-auto">
       <Canvas camera={{ position: [4, 4, 5], fov: 40 }}>
         <ambientLight intensity={0.85} />
         <directionalLight position={[5, 8, 6]} intensity={0.7} />

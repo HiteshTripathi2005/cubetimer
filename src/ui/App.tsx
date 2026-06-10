@@ -5,6 +5,7 @@ import { NavBar } from './NavBar'
 import { TimerPage } from './TimerPage'
 
 const SolverPage = lazy(() => import('./SolverPage'))
+const AlgorithmsPage = lazy(() => import('./AlgorithmsPage'))
 
 export function App() {
   const theme = useStore((s) => s.settings.theme)
@@ -26,7 +27,7 @@ export function App() {
   return (
     <div className="h-full flex flex-col">
       <NavBar />
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <Routes>
           <Route path="/timer" element={<TimerPage />} />
           <Route
@@ -34,6 +35,14 @@ export function App() {
             element={
               <Suspense fallback={<div className="h-full grid place-items-center text-zinc-400">Loading solver…</div>}>
                 <SolverPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/algorithms"
+            element={
+              <Suspense fallback={<div className="h-full grid place-items-center text-zinc-400">Loading algorithms…</div>}>
+                <AlgorithmsPage />
               </Suspense>
             }
           />

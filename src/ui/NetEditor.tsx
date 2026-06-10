@@ -16,7 +16,7 @@ interface Props {
 export function NetEditor({ grid, onPaint, highlight }: Props) {
   return (
     <div
-      className="grid gap-0.5 w-full max-w-xs"
+      className="grid gap-0.5 w-full max-w-sm md:max-w-md"
       style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)`, gridTemplateRows: `repeat(${ROWS}, 1fr)`, aspectRatio: `${COLS} / ${ROWS}` }}
     >
       {NET_CELLS.map((cell) => {

@@ -27,8 +27,10 @@ export function SolverPage() {
   const counts = showCounts ? colorCounts(s.grid) : null
   const offColors = showCounts ? offCountColors(s.grid) : undefined
 
+  const actionBtn = 'rounded-md px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+
   return (
-    <div className="h-full mx-auto max-w-6xl px-4 py-4 grid gap-6 md:grid-cols-[1.3fr_1fr]">
+    <div className="min-h-full w-full px-4 py-4 sm:px-6 lg:px-8 grid gap-6 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] xl:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]">
       {/* Left: input */}
       <section className="flex flex-col gap-4 min-h-0">
         <div className="relative">
@@ -45,27 +47,31 @@ export function SolverPage() {
             </span>
           )}
         </div>
-        {painting && <>
-          <ColorPalette active={s.activeColor} onSelect={s.setActiveColor} />
-          <NetEditor grid={s.grid} onPaint={s.paintSticker} highlight={offColors} />
-          <div className="flex gap-2">
-            <button type="button" onClick={s.resetToSolved} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Reset</button>
-            <button type="button" onClick={s.clear} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Clear</button>
-            <button type="button" onClick={s.scramble} className="rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Scramble</button>
+        {painting && (
+          <div className="flex flex-col items-center gap-4 md:flex-row md:items-start md:justify-center md:gap-10">
+            <NetEditor grid={s.grid} onPaint={s.paintSticker} highlight={offColors} />
+            <div className="flex flex-col items-center gap-3 md:items-start">
+              <ColorPalette active={s.activeColor} onSelect={s.setActiveColor} />
+              <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+                <button type="button" onClick={s.resetToSolved} className={actionBtn}>Reset</button>
+                <button type="button" onClick={s.clear} className={actionBtn}>Clear</button>
+                <button type="button" onClick={s.scramble} className={actionBtn}>Scramble</button>
+              </div>
+            </div>
           </div>
-        </>}
+        )}
         {!painting && (
-          <button type="button" onClick={s.clearSolution} className="self-start rounded-md px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700">Edit cube</button>
+          <button type="button" onClick={s.clearSolution} className={`self-center lg:self-start ${actionBtn}`}>Edit cube</button>
         )}
       </section>
 
       {/* Right: solution */}
-      <aside className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-4 flex flex-col gap-3">
+      <aside className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-4 flex flex-col gap-3 self-start w-full lg:sticky lg:top-4">
         <button
           type="button"
           onClick={() => void s.solveCurrent()}
           disabled={s.status === 'solving'}
-          className="self-start rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500 disabled:opacity-50"
+          className="w-full sm:w-auto sm:self-start rounded-md bg-indigo-600 px-6 py-2.5 font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
         >
           {s.status === 'solving' ? 'Solving…' : 'Solve'}
         </button>
