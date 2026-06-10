@@ -5,7 +5,8 @@ import { solvedFacelets } from '../cube/state'
 import { faceletsFromScramble } from '../facelets/facelets'
 import { ScrambowSource } from '../scramble/scrambowSource'
 import { validateGrid } from './validate'
-import { solveFacelets, SolverError } from './solve'
+import { SolverError } from './solve'
+import { solveAsync } from './client'
 import { clampIndex } from '../cube/playback'
 
 type PaintGrid = (FaceKey | null)[]
@@ -81,11 +82,14 @@ export const useSolverStore = create<SolverStoreState>((set, get) => ({
       set({ status: 'error', error: result.message, solution: null, inputFacelets: null })
       return
     }
+    const gridAtSolve = get().grid
     set({ status: 'solving', error: null })
-    // Yield so the 'solving' state can paint before the (first-time) table build blocks.
-    await new Promise((r) => setTimeout(r, 0))
+    // Solving runs in a worker; if the user edits the cube meanwhile, the
+    // grid reference changes and the stale response is discarded.
+    const stale = () => get().grid !== gridAtSolve
     try {
-      const solution = solveFacelets(result.facelets)
+      const solution = await solveAsync(result.facelets)
+      if (stale()) return
       set({
         solution,
         inputFacelets: result.facelets,
@@ -95,6 +99,7 @@ export const useSolverStore = create<SolverStoreState>((set, get) => ({
         error: null,
       })
     } catch (e) {
+      if (stale()) return
       const message = e instanceof SolverError ? e.message : 'Could not solve this cube.'
       set({ status: 'error', error: message, solution: null, inputFacelets: null })
     }

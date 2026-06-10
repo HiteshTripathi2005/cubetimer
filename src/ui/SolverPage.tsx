@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import type { FaceKey } from '../facelets/facelets'
 import { FACE_COLORS } from '../facelets/facelets'
 import { useSolverStore } from '../solver/store'
+import { warmSolver } from '../solver/client'
 import { Cube3D } from '../cube/Cube3D'
 import { NetEditor } from './NetEditor'
 import { ColorPalette } from './ColorPalette'
@@ -15,6 +17,8 @@ const TALLY_FACES: FaceKey[] = ['U', 'R', 'F', 'D', 'L', 'B']
 export function SolverPage() {
   const s = useSolverStore()
   const playback = useSolvePlayback()
+  // Build the solver tables in the worker right away so the first Solve is fast.
+  useEffect(() => { warmSolver() }, [])
   const display = selectDisplayGrid({
     grid: s.grid, inputFacelets: s.inputFacelets, solution: s.solution, playbackIndex: s.playbackIndex,
   })

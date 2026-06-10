@@ -7,6 +7,12 @@ import { cubejsSolverPlugin } from './vite/cubejsSolverPlugin'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // The solver worker imports virtual:cubejs-solver (via solve.ts), so the
+  // worker bundle needs the same plugin.
+  worker: {
+    format: 'es',
+    plugins: () => [cubejsSolverPlugin()],
+  },
   plugins: [
     tailwindcss(),
     react(),
