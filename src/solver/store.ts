@@ -35,6 +35,7 @@ interface SolverStoreState {
   resetToSolved: () => void
   clear: () => void
   scramble: () => void
+  applyScan: (grid: FaceKey[]) => void
   setActiveColor: (color: FaceKey) => void
   paintSticker: (index: number) => void
   // solve + playback actions
@@ -66,6 +67,7 @@ export const useSolverStore = create<SolverStoreState>((set, get) => ({
   resetToSolved: () => set({ grid: solvedFacelets(), ...clearedSolve }),
   clear: () => set({ grid: blankGrid(), ...clearedSolve }),
   scramble: () => set({ grid: faceletsFromScramble(scrambleSource.next()), ...clearedSolve }),
+  applyScan: (grid) => set({ grid, ...clearedSolve }),
   setActiveColor: (color) => set({ activeColor: color }),
   paintSticker: (index) => {
     if (CENTERS.includes(index)) return

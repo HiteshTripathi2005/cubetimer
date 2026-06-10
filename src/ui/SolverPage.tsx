@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { FaceKey } from '../facelets/facelets'
 import { FACE_COLORS } from '../facelets/facelets'
 import { useSolverStore } from '../solver/store'
 import { warmSolver } from '../solver/client'
+import { ScanDialog } from './ScanDialog'
 import { Cube3D } from '../cube/Cube3D'
 import { NetEditor } from './NetEditor'
 import { ColorPalette } from './ColorPalette'
@@ -19,6 +20,7 @@ export function SolverPage() {
   const playback = useSolvePlayback()
   // Build the solver tables in the worker right away so the first Solve is fast.
   useEffect(() => { warmSolver() }, [])
+  const [scanning, setScanning] = useState(false)
   const display = selectDisplayGrid({
     grid: s.grid, inputFacelets: s.inputFacelets, solution: s.solution, playbackIndex: s.playbackIndex,
   })
@@ -56,6 +58,7 @@ export function SolverPage() {
                 <button type="button" onClick={s.resetToSolved} className={actionBtn}>Reset</button>
                 <button type="button" onClick={s.clear} className={actionBtn}>Clear</button>
                 <button type="button" onClick={s.scramble} className={actionBtn}>Scramble</button>
+                <button type="button" onClick={() => setScanning(true)} className={actionBtn}>📷 Scan</button>
               </div>
             </div>
           </div>
@@ -112,8 +115,10 @@ export function SolverPage() {
             onStepForward={playback.next} onStepBack={playback.prev} onSpeed={s.setSpeed}
           />
         </>}
-        {!s.solution && s.status !== 'error' && <p className="text-zinc-400 text-sm">Paint your cube, then press Solve.</p>}
+        {!s.solution && s.status !== 'error' && <p className="text-zinc-400 text-sm">Paint or scan your cube, then press Solve.</p>}
       </aside>
+
+      {scanning && <ScanDialog onApply={s.applyScan} onClose={() => setScanning(false)} />}
     </div>
   )
 }
