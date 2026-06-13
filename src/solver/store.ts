@@ -62,7 +62,7 @@ export const useSolverStore = create<SolverStoreState>((set, get) => ({
   grid: solvedFacelets(),
   activeColor: 'U',
   ...clearedSolve,
-  speedMs: 600,
+  speedMs: 1100,
 
   resetToSolved: () => set({ grid: solvedFacelets(), ...clearedSolve }),
   clear: () => set({ grid: blankGrid(), ...clearedSolve }),

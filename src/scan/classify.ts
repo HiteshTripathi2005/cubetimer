@@ -1,4 +1,5 @@
 import type { FaceKey } from '../facelets/facelets'
+import { FACE_COLORS } from '../facelets/facelets'
 
 export interface RGB {
   r: number
@@ -30,6 +31,46 @@ export function labDistance(a: RGB, b: RGB): number {
 }
 
 const FACE_ORDER: FaceKey[] = ['U', 'R', 'F', 'D', 'L', 'B']
+
+// Ideal sticker color for each face, derived from the standard scheme. Used for
+// the live per-face preview, where only the current face's samples are known
+// (so we can't yet classify relative to all six scanned centers).
+const IDEAL_PALETTE: { face: FaceKey; rgb: RGB }[] = FACE_ORDER.map((face) => {
+  const hex = FACE_COLORS[face]
+  return {
+    face,
+    rgb: {
+      r: parseInt(hex.slice(1, 3), 16),
+      g: parseInt(hex.slice(3, 5), 16),
+      b: parseInt(hex.slice(5, 7), 16),
+    },
+  }
+})
+
+/** Nearest standard cube color to a sampled RGB, in perceptual Lab space. */
+export function nearestPaletteFace(rgb: RGB): FaceKey {
+  let best: FaceKey = 'U'
+  let bestD = Infinity
+  for (const p of IDEAL_PALETTE) {
+    const d = labDistance(rgb, p.rgb)
+    if (d < bestD) {
+      bestD = d
+      best = p.face
+    }
+  }
+  return best
+}
+
+/**
+ * Classify the 9 raw samples of a single face for the live scan preview.
+ * The center sticker never moves on a real cube, so it is forced to
+ * `centerFace` (its true main color) instead of being detected — that anchors
+ * the face and removes the reading users most often get wrong. The other 8 are
+ * matched to the nearest standard color.
+ */
+export function classifyFace(samples: RGB[], centerFace: FaceKey): FaceKey[] {
+  return samples.map((rgb, i) => (i === 4 ? centerFace : nearestPaletteFace(rgb)))
+}
 
 /**
  * Classify scanned sticker colors against the scanned center colors.

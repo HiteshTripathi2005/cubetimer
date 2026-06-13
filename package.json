@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:host": "vite --host",
+    "live": "cap run android -l --host localhost --port 5173 --forwardPorts 5173:5173",
+    "live:wifi": "cap run android -l --host $(ipconfig getifaddr en0) --port 5173",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b",
+    "apk": "npm run cap:sync && JAVA_HOME=/opt/homebrew/opt/openjdk@21 android/gradlew -p android assembleDebug && cp android/app/build/outputs/apk/debug/app-debug.apk CubeTimer-debug.apk && echo '✔ CubeTimer-debug.apk ready in project root'",
     "cap:sync": "npm run build && cap sync",
     "cap:android": "npm run cap:sync && cap open android",
     "cap:ios": "npm run cap:sync && cap open ios"

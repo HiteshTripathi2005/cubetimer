@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FaceKey } from '../facelets/facelets'
 import { FACE_COLORS } from '../facelets/facelets'
-import { classifyScan, labDistance, type RGB } from '../scan/classify'
+import { classifyFace, type RGB } from '../scan/classify'
 import { fixScanOrientation } from '../scan/orientation'
+import { ColorPalette } from './ColorPalette'
 
 // Guided 6-face scan. Each step prescribes how to hold the cube so the 3x3
 // camera grid maps directly to facelet reading order (row-major) for that
@@ -54,36 +55,15 @@ const FACE_NAMES: Record<FaceKey, string> = {
   U: 'white', R: 'red', F: 'green', D: 'yellow', L: 'orange', B: 'blue',
 }
 
+// Assembly order of the final 54-facelet grid (cubejs order).
+const FACE_ORDER: FaceKey[] = ['U', 'R', 'F', 'D', 'L', 'B']
+
 // Fraction of the (square-cropped) frame covered by the sampling grid.
 const GRID_FRACTION = 0.6
 const INSET = ((1 - GRID_FRACTION) / 2) * 100 // % inset of the guide grid
 
-// Ideal palette in RGB, used only for the advisory "is this the right face?"
-// check on the captured center (final classification uses scanned centers).
-const PALETTE: { face: FaceKey; rgb: RGB }[] = (Object.keys(FACE_COLORS) as FaceKey[]).map((face) => {
-  const hex = FACE_COLORS[face]
-  return {
-    face,
-    rgb: {
-      r: parseInt(hex.slice(1, 3), 16),
-      g: parseInt(hex.slice(3, 5), 16),
-      b: parseInt(hex.slice(5, 7), 16),
-    },
-  }
-})
-
-function nearestPaletteFace(rgb: RGB): FaceKey {
-  let best: FaceKey = 'U'
-  let bestD = Infinity
-  for (const p of PALETTE) {
-    const d = labDistance(rgb, p.rgb)
-    if (d < bestD) {
-      bestD = d
-      best = p.face
-    }
-  }
-  return best
-}
+// How often the live preview re-samples the camera frame.
+const SAMPLE_INTERVAL_MS = 200
 
 // Average a small patch around each of the 9 cell centers of the guide grid.
 function sampleFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement): RGB[] | null {
@@ -134,9 +114,16 @@ export function ScanDialog({ onApply, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [stepIndex, setStepIndex] = useState(0)
-  const [scans, setScans] = useState<Partial<Record<FaceKey, RGB[]>>>({})
+  // Confirmed 9 colors per face, accumulated as the user confirms each face.
+  const [confirmed, setConfirmed] = useState<Partial<Record<FaceKey, FaceKey[]>>>({})
+  // The 9 colors currently shown for the active face (null until first sample).
+  const [detected, setDetected] = useState<FaceKey[] | null>(null)
+  // `manual` freezes the live preview so the user's tap-fixes are not overwritten.
+  const [manual, setManual] = useState(false)
+  const [activeColor, setActiveColor] = useState<FaceKey>('U')
   const [error, setError] = useState<string | null>(null)
-  const [warning, setWarning] = useState<string | null>(null)
+
+  const step = STEPS[stepIndex]
 
   useEffect(() => {
     let stream: MediaStream | null = null
@@ -176,36 +163,55 @@ export function ScanDialog({ onApply, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const step = STEPS[stepIndex]
-  const done = stepIndex >= STEPS.length
+  // Live preview: while not frozen, re-sample the frame and classify the 9
+  // blocks of the current face. The center is locked to the face's true color.
+  useEffect(() => {
+    if (error || manual || !step) return
+    const id = window.setInterval(() => {
+      if (!videoRef.current || !canvasRef.current) return
+      const samples = sampleFrame(videoRef.current, canvasRef.current)
+      if (samples) setDetected(classifyFace(samples, step.face))
+    }, SAMPLE_INTERVAL_MS)
+    return () => window.clearInterval(id)
+  }, [stepIndex, manual, error, step])
 
-  const capture = () => {
-    if (!videoRef.current || !canvasRef.current || done) return
-    const samples = sampleFrame(videoRef.current, canvasRef.current)
-    if (!samples) return
-    // Advisory only — final classification uses the cube's own centers.
-    const looksLike = nearestPaletteFace(samples[4])
-    setWarning(
-      looksLike !== step.face
-        ? `That capture's center looks ${FACE_NAMES[looksLike]}, expected ${FACE_NAMES[step.face]}. If that's wrong, press Back and recapture.`
-        : null,
-    )
-    const next = { ...scans, [step.face]: samples }
-    setScans(next)
+  // Tap a block to correct a misread color. Freezes the preview so the fix sticks.
+  const paintCell = (i: number) => {
+    if (i === 4 || !step) return // center is locked to the true color
+    setManual(true)
+    setDetected((prev) => {
+      const base = prev ? [...prev] : Array<FaceKey>(9).fill(step.face)
+      base[i] = activeColor
+      base[4] = step.face
+      return base
+    })
+  }
+
+  const confirmFace = () => {
+    if (!detected || !step) return
+    const face = [...detected]
+    face[4] = step.face
+    const next = { ...confirmed, [step.face]: face }
+    setConfirmed(next)
     if (stepIndex === STEPS.length - 1) {
-      const grid = classifyScan(next as Record<FaceKey, RGB[]>)
+      const grid = FACE_ORDER.flatMap((f) => next[f] ?? [])
       // Recover white/yellow faces captured with a different tilt direction.
       onApply(fixScanOrientation(grid) ?? grid)
       onClose()
       return
     }
     setStepIndex(stepIndex + 1)
+    setDetected(null)
+    setManual(false)
   }
 
-  const retake = () => {
+  const back = () => {
     if (stepIndex === 0) return
-    setWarning(null)
+    const prev = STEPS[stepIndex - 1].face
     setStepIndex(stepIndex - 1)
+    // Reload the previous face's confirmed colors (frozen) so it can be redone.
+    setDetected(confirmed[prev] ?? null)
+    setManual(confirmed[prev] !== undefined)
   }
 
   return (
@@ -227,14 +233,32 @@ export function ScanDialog({ onApply, onClose }: Props) {
           <>
             <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-black">
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
-              {/* 3x3 alignment guide matching the sampled region */}
+              {/* 3x3 grid showing the color the system reads for each block */}
               <div
-                className="pointer-events-none absolute grid grid-cols-3 grid-rows-3"
+                className="absolute grid grid-cols-3 grid-rows-3"
                 style={{ inset: `${INSET}%` }}
               >
-                {Array.from({ length: 9 }, (_, i) => (
-                  <div key={i} className="border border-white/70" />
-                ))}
+                {Array.from({ length: 9 }, (_, i) => {
+                  const c = detected?.[i] ?? null
+                  const isCenter = i === 4
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      data-testid={`block-${i}`}
+                      disabled={isCenter}
+                      onClick={() => paintCell(i)}
+                      aria-label={`block ${i}${c ? ` ${FACE_NAMES[c]}` : ''}`}
+                      className="relative flex items-center justify-center border border-white/80"
+                      style={{
+                        backgroundColor: c ? FACE_COLORS[c] : 'rgba(0,0,0,0.2)',
+                        opacity: c ? 0.82 : 1,
+                      }}
+                    >
+                      {isCenter && <span className="text-xs drop-shadow">🔒</span>}
+                    </button>
+                  )
+                })}
               </div>
               {/* neighbor strips: the colors you should see around the face */}
               {step && (['top', 'right', 'bottom', 'left'] as const).map((side) => (
@@ -250,11 +274,22 @@ export function ScanDialog({ onApply, onClose }: Props) {
             <canvas ref={canvasRef} className="hidden" />
 
             <p className="text-xs text-zinc-400">
-              The strips show which neighboring colors should surround the face — if yours don't match, the cube is
-              held the wrong way.
+              The system fills each block with the color it sees — the center is locked to {step ? FACE_NAMES[step.face] : ''}.
+              {manual
+                ? ' Tap blocks to fix, or resume auto-detect.'
+                : ' Align the cube until the colors match, then Confirm. Tap any block to correct it.'}
             </p>
 
-            {warning && <p className="text-xs font-medium text-amber-500">{warning}</p>}
+            {/* fix palette: pick a color, then tap a wrong block */}
+            <div className="flex items-center justify-between gap-2">
+              <ColorPalette active={activeColor} onSelect={setActiveColor} />
+              {manual && (
+                <button type="button" onClick={() => setManual(false)}
+                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs">
+                  ↺ Auto
+                </button>
+              )}
+            </div>
 
             {/* progress chips */}
             <div className="flex items-center gap-1.5" aria-label="scan progress">
@@ -270,11 +305,12 @@ export function ScanDialog({ onApply, onClose }: Props) {
             </div>
 
             <div className="flex gap-2">
-              <button type="button" onClick={capture}
-                className="flex-1 rounded-md bg-indigo-600 px-4 py-2.5 font-medium text-white hover:bg-indigo-500">
-                Capture {step?.face && <span className="font-mono">({step.face})</span>}
+              <button type="button" onClick={confirmFace} disabled={!detected}
+                className="flex-1 rounded-md bg-indigo-600 px-4 py-2.5 font-medium text-white hover:bg-indigo-500 disabled:opacity-50">
+                {stepIndex === STEPS.length - 1 ? 'Confirm & finish' : 'Confirm face'}
+                {step?.face && <span className="ml-1 font-mono">({step.face})</span>}
               </button>
-              <button type="button" onClick={retake} disabled={stepIndex === 0}
+              <button type="button" onClick={back} disabled={stepIndex === 0}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-50">
                 Back
               </button>

@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSolverStore } from '../solver/store'
 import { invertMove } from '../cube/moves'
+
+// During autoplay, hold the cube still between turns so each move lands and
+// registers before the next begins. The gap scales with the chosen speed, so
+// the speed slider controls the whole pace (turn duration + the pause after it).
+const GAP_RATIO = 0.5
 
 export interface Playback {
   /** The move the 3D cube should be animating right now (null = idle). */
@@ -36,27 +41,43 @@ export function useSolvePlayback(): Playback {
   const [pending, setPending] = useState<Pending | null>(null)
   const active = pending && pending.sol === solution ? pending : null
 
+  // Timer for the inter-move pause during autoplay; cleared on unmount.
+  const gapTimer = useRef<number | null>(null)
+  const clearGap = () => {
+    if (gapTimer.current !== null) {
+      clearTimeout(gapTimer.current)
+      gapTimer.current = null
+    }
+  }
+  useEffect(() => clearGap, [])
+
   const len = solution?.length ?? 0
   const canNext = solution !== null && index < len
   const canPrev = solution !== null && index > 0
 
   const next = () => {
+    clearGap()
     const { solution: sol, playbackIndex: idx } = useSolverStore.getState()
     if (active || !sol || idx >= sol.length) return
     setPending({ dir: 1, move: sol[idx], sol })
   }
   const prev = () => {
+    clearGap()
     const { solution: sol, playbackIndex: idx } = useSolverStore.getState()
     if (active || !sol || idx <= 0) return
     setPending({ dir: -1, move: invertMove(sol[idx - 1]), sol })
   }
   const play = () => {
+    clearGap()
     const { solution: sol, playbackIndex: idx, play: storePlay } = useSolverStore.getState()
     if (!sol || idx >= sol.length) return
     storePlay()
     if (!active) setPending({ dir: 1, move: sol[idx], sol })
   }
-  const pause = () => useSolverStore.getState().pause()
+  const pause = () => {
+    clearGap()
+    useSolverStore.getState().pause()
+  }
 
   const onMoveAnimated = () => {
     const st = useSolverStore.getState()
@@ -67,11 +88,20 @@ export function useSolvePlayback(): Playback {
     }
     const newIndex = st.playbackIndex + p.dir
     st.setPlaybackIndex(newIndex)
+    // Move done: drop to idle so the cube holds the committed state…
+    setPending(null)
     if (st.isPlaying && p.dir === 1 && newIndex < p.sol.length) {
-      setPending({ dir: 1, move: p.sol[newIndex], sol: p.sol })
-    } else {
-      setPending(null)
-      if (st.isPlaying && newIndex >= p.sol.length) st.pause()
+      // …then start the next turn after a pause so the user can follow along.
+      clearGap()
+      gapTimer.current = window.setTimeout(() => {
+        gapTimer.current = null
+        const cur = useSolverStore.getState()
+        if (cur.isPlaying && cur.solution === p.sol && cur.playbackIndex === newIndex) {
+          setPending({ dir: 1, move: p.sol[newIndex], sol: p.sol })
+        }
+      }, Math.round(st.speedMs * GAP_RATIO))
+    } else if (st.isPlaying && newIndex >= p.sol.length) {
+      st.pause()
     }
   }
 

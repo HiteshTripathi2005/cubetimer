@@ -21,9 +21,9 @@ export function PlaybackControls({ isPlaying, speedMs, onPlay, onPause, onStepFo
         <input
           aria-label="Speed"
           type="range"
-          min={150}
-          max={1200}
-          step={50}
+          min={200}
+          max={2500}
+          step={100}
           value={speedMs}
           onChange={(e) => onSpeed(Number(e.target.value))}
         />

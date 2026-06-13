@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { FaceKey } from '../facelets/facelets'
-import { classifyScan, labDistance, type RGB } from './classify'
+import { classifyScan, classifyFace, nearestPaletteFace, labDistance, type RGB } from './classify'
 import { solvedFacelets, applyMoves } from '../cube/state'
 
 // Realistic-ish camera readings of the six sticker colors (dimmer + tinted
@@ -44,5 +44,35 @@ describe('classifyScan', () => {
   it('recovers a scrambled cube, including red vs orange stickers', () => {
     const scrambled = applyMoves(solvedFacelets(), "R U R' U' F2 L D B' R2 U'")
     expect(classifyScan(samplesFor(scrambled))).toEqual(scrambled)
+  })
+})
+
+describe('nearestPaletteFace', () => {
+  it('matches noisy camera colors to the right standard color', () => {
+    expect(nearestPaletteFace(CAMERA.R)).toBe('R')
+    expect(nearestPaletteFace(CAMERA.L)).toBe('L') // orange, distinct from red
+    expect(nearestPaletteFace(CAMERA.U)).toBe('U')
+  })
+})
+
+describe('classifyFace', () => {
+  it('locks the center to the given face regardless of what was sampled', () => {
+    // A green face whose center sample reads reddish — center stays green.
+    const samples = Array.from({ length: 9 }, () => CAMERA.F)
+    samples[4] = CAMERA.R
+    expect(classifyFace(samples, 'F')[4]).toBe('F')
+  })
+
+  it('classifies the other eight blocks against the palette', () => {
+    const samples = [
+      CAMERA.U, CAMERA.R, CAMERA.F,
+      CAMERA.D, CAMERA.L /* center sample */, CAMERA.B,
+      CAMERA.U, CAMERA.R, CAMERA.F,
+    ]
+    expect(classifyFace(samples, 'F')).toEqual([
+      'U', 'R', 'F',
+      'D', 'F', 'B', // center forced to F
+      'U', 'R', 'F',
+    ])
   })
 })
