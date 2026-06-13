@@ -31,6 +31,7 @@ const fallback = (label: string) => (
 
 export function App() {
   const theme = useStore((s) => s.settings.theme)
+  const solving = useStore((s) => s.solving)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   // Apply theme to <html> (light/dark/system) — shell-level so it covers all routes.
@@ -49,7 +50,8 @@ export function App() {
 
   return (
     <div className="h-full flex flex-col">
-      {isDesktop ? <NavBar /> : <MobileTopBar />}
+      {/* Chrome hides during a solve so nothing competes with the timer. */}
+      {!solving && (isDesktop ? <NavBar /> : <MobileTopBar />)}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <Routes>
           <Route path="/timer" element={<TimerPage />} />
@@ -65,7 +67,7 @@ export function App() {
           <Route path="*" element={<Navigate to="/timer" replace />} />
         </Routes>
       </div>
-      {!isDesktop && <BottomNav />}
+      {!isDesktop && !solving && <BottomNav />}
     </div>
   )
 }

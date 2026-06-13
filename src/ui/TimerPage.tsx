@@ -30,6 +30,15 @@ export function TimerPage() {
     audioCues: s.settings.inspectionAudioCues,
   })
 
+  // Focus mode: from the moment a solve begins (inspection or hold) until it
+  // stops, hide all chrome so only the timer is on screen.
+  const focus = phase !== 'idle'
+  const setSolving = useStore((st) => st.setSolving)
+  useEffect(() => {
+    setSolving(focus)
+    return () => setSolving(false)
+  }, [focus, setSolving])
+
   if (!s.ready) {
     return <div className="h-full grid place-items-center text-zinc-400">Loading…</div>
   }
@@ -45,25 +54,27 @@ export function TimerPage() {
   const f = (v: number | 'DNF' | null) => formatTime(v, s.settings.decimalPlaces)
 
   return (
-    <div className="h-full w-full px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4 md:overflow-hidden">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <SessionBar
-            sessions={s.sessions} activeId={s.settings.activeSessionId}
-            onSwitch={(id) => void s.switchSession(id)}
-            onCreate={(name) => void s.createSession(name)}
-            onRename={(id, name) => void s.renameSession(id, name)}
-            onDelete={(id) => void s.deleteSession(id)}
-          />
-          <button type="button" aria-label="Settings" onClick={() => setShowSettings((v) => !v)}
-            className="px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800">⚙</button>
-        </div>
-      </header>
+    <div className="h-full w-full max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4 md:overflow-hidden">
+      {!focus && (
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SessionBar
+              sessions={s.sessions} activeId={s.settings.activeSessionId}
+              onSwitch={(id) => void s.switchSession(id)}
+              onCreate={(name) => void s.createSession(name)}
+              onRename={(id, name) => void s.renameSession(id, name)}
+              onDelete={(id) => void s.deleteSession(id)}
+            />
+            <button type="button" aria-label="Settings" onClick={() => setShowSettings((v) => !v)}
+              className="px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800">⚙</button>
+          </div>
+        </header>
+      )}
 
       <div className="flex-1 min-h-0 grid gap-6 lg:grid-cols-[1.6fr_1fr] xl:grid-cols-[2.2fr_1fr]">
         {/* Scramble + timer (full screen on phone/tablet) */}
         <section className="flex flex-col min-h-0">
-          <ScrambleBar scramble={s.scramble} onNewScramble={() => s.newScramble()} />
+          {!focus && <ScrambleBar scramble={s.scramble} onNewScramble={() => s.newScramble()} />}
           <div
             className="flex-1 grid place-items-center touch-none"
             style={{ touchAction: 'none' }}
@@ -73,7 +84,7 @@ export function TimerPage() {
           </div>
 
           {/* Phone/tablet: one compact line of info; full stats live in the Stats tab. */}
-          {!s.settings.distractionFree && (
+          {!focus && !s.settings.distractionFree && (
             <div className="lg:hidden flex shrink-0 items-center justify-center gap-4 pt-2 text-xs text-zinc-500 dark:text-zinc-400">
               <span>solves <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-200">{s.solves.length}</span></span>
               <span>ao5 <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-200">{f(average(s.solves, 5))}</span></span>
@@ -83,8 +94,8 @@ export function TimerPage() {
           )}
         </section>
 
-        {/* Desktop: full stats column (hidden in distraction-free) */}
-        {!s.settings.distractionFree && (
+        {/* Desktop: full stats column (hidden in distraction-free and while solving) */}
+        {!focus && !s.settings.distractionFree && (
           <aside className="hidden lg:block min-h-0">
             <StatsView />
           </aside>

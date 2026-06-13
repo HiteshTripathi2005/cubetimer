@@ -38,8 +38,11 @@ interface StoreState {
   sessions: Session[]
   solves: Solve[]
   scramble: string
+  /** True while a solve is in progress (inspection → running) — drives focus mode. */
+  solving: boolean
 
   init: () => Promise<void>
+  setSolving: (v: boolean) => void
   newScramble: () => void
   addSolve: (timeMs: number, penalty: Penalty) => Promise<void>
   setPenalty: (id: string, penalty: Penalty) => Promise<void>
@@ -73,6 +76,9 @@ export const useStore = create<StoreState>((set, get) => ({
   sessions: [],
   solves: [],
   scramble: '',
+  solving: false,
+
+  setSolving: (v) => set({ solving: v }),
 
   init: async () => {
     // Fix 3: idempotent init — module-level guard prevents double-run in StrictMode.
