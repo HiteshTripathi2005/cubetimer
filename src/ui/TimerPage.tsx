@@ -5,14 +5,12 @@ import { downloadExport, buildExport } from '../transfer/transfer'
 import type { ExportOptions } from '../transfer/transfer'
 import { ScrambleBar } from './ScrambleBar'
 import { TimerDisplay } from './TimerDisplay'
-import { StatsCard } from './StatsCard'
-import { SolveList } from './SolveList'
-import { ScramblePreview } from './ScramblePreview'
-import { GraphsPanel } from './GraphsPanel'
+import { StatsView } from './StatsView'
 import { SessionBar } from './SessionBar'
 import { SettingsPanel } from './SettingsPanel'
 import { ImportExportDialog } from './ImportExportDialog'
 import { getAllSessions, getAllSolves } from '../storage/db'
+import { average, best, formatTime } from '../stats/averages'
 
 export function TimerPage() {
   const s = useStore()
@@ -44,6 +42,8 @@ export function TimerPage() {
     downloadExport(file, `cubetimer-export-${date}.json`)
   }
 
+  const f = (v: number | 'DNF' | null) => formatTime(v, s.settings.decimalPlaces)
+
   return (
     <div className="h-full w-full px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4 md:overflow-hidden">
       <header className="flex items-center justify-between">
@@ -60,8 +60,8 @@ export function TimerPage() {
         </div>
       </header>
 
-      <div className="flex-1 min-h-0 grid gap-6 md:grid-cols-[1.6fr_1fr] xl:grid-cols-[2.2fr_1fr]">
-        {/* Left: scramble + timer */}
+      <div className="flex-1 min-h-0 grid gap-6 lg:grid-cols-[1.6fr_1fr] xl:grid-cols-[2.2fr_1fr]">
+        {/* Scramble + timer (full screen on phone/tablet) */}
         <section className="flex flex-col min-h-0">
           <ScrambleBar scramble={s.scramble} onNewScramble={() => s.newScramble()} />
           <div
@@ -71,31 +71,28 @@ export function TimerPage() {
           >
             <TimerDisplay phase={phase} display={display} inspectionSeconds={inspectionSeconds} />
           </div>
+
+          {/* Phone/tablet: one compact line of info; full stats live in the Stats tab. */}
+          {!s.settings.distractionFree && (
+            <div className="lg:hidden flex shrink-0 items-center justify-center gap-4 pt-2 text-xs text-zinc-500 dark:text-zinc-400">
+              <span>solves <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-200">{s.solves.length}</span></span>
+              <span>ao5 <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-200">{f(average(s.solves, 5))}</span></span>
+              <span>ao12 <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-200">{f(average(s.solves, 12))}</span></span>
+              <span>best <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-200">{f(best(s.solves))}</span></span>
+            </div>
+          )}
         </section>
 
-        {/* Right: stats / list / preview / graphs (hidden in distraction-free) */}
+        {/* Desktop: full stats column (hidden in distraction-free) */}
         {!s.settings.distractionFree && (
-          <aside className="flex flex-col gap-4 min-h-0">
-            <StatsCard solves={s.solves} decimals={s.settings.decimalPlaces} />
-            <div className="flex-1 min-h-0 rounded-xl border border-zinc-100 dark:border-zinc-800">
-              <SolveList
-                solves={s.solves} decimals={s.settings.decimalPlaces}
-                onSetPenalty={(id, p) => void s.setPenalty(id, p)}
-                onDelete={(id) => void s.deleteSolve(id)}
-              />
-            </div>
-            <div className="shrink-0 rounded-xl border border-zinc-100 dark:border-zinc-800 p-2">
-              <ScramblePreview scramble={s.scramble} />
-            </div>
-            <div className="shrink-0 rounded-xl border border-zinc-100 dark:border-zinc-800 p-2">
-              <GraphsPanel solves={s.solves} />
-            </div>
+          <aside className="hidden lg:block min-h-0">
+            <StatsView />
           </aside>
         )}
       </div>
 
       {showSettings && (
-        <div className="fixed right-4 top-24 z-40 w-72 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-lg">
+        <div className="fixed right-4 top-16 z-40 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-lg">
           <SettingsPanel
             settings={s.settings}
             onChange={(patch) => s.updateSettings(patch)}

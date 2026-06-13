@@ -65,8 +65,8 @@ export function AlgorithmsPage() {
     }`
 
   return (
-    <div className="min-h-full w-full px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="min-h-full w-full px-4 pb-4 sm:px-6 lg:px-8 flex flex-col gap-4">
+      <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur">
         <div className="flex gap-1 rounded-lg border border-zinc-200 dark:border-zinc-700 p-1" role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'OLL'} className={tabBtn('OLL')} onClick={() => setTab('OLL')}>
             OLL · {OLL_CASES.length}

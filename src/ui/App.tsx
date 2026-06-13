@@ -1,14 +1,32 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { NavBar } from './NavBar'
+import { BottomNav } from './BottomNav'
 import { TimerPage } from './TimerPage'
+import { StatsPage } from './StatsPage'
 
 const SolverPage = lazy(() => import('./SolverPage'))
 const AlgorithmsPage = lazy(() => import('./AlgorithmsPage'))
 
+// Phone/tablet get a slim wordmark header (navigation lives in the bottom bar);
+// desktop keeps the full top nav.
+function MobileTopBar() {
+  return (
+    <header className="shrink-0 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800 py-2.5">
+      <span className="font-bold tracking-tight text-zinc-800 dark:text-zinc-100">Turnix</span>
+    </header>
+  )
+}
+
+const fallback = (label: string) => (
+  <div className="h-full grid place-items-center text-zinc-400">{label}</div>
+)
+
 export function App() {
   const theme = useStore((s) => s.settings.theme)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   // Apply theme to <html> (light/dark/system) — shell-level so it covers all routes.
   useEffect(() => {
@@ -26,29 +44,23 @@ export function App() {
 
   return (
     <div className="h-full flex flex-col">
-      <NavBar />
+      {isDesktop ? <NavBar /> : <MobileTopBar />}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <Routes>
           <Route path="/timer" element={<TimerPage />} />
+          <Route path="/stats" element={<StatsPage />} />
           <Route
             path="/solver"
-            element={
-              <Suspense fallback={<div className="h-full grid place-items-center text-zinc-400">Loading solver…</div>}>
-                <SolverPage />
-              </Suspense>
-            }
+            element={<Suspense fallback={fallback('Loading solver…')}><SolverPage /></Suspense>}
           />
           <Route
             path="/algorithms"
-            element={
-              <Suspense fallback={<div className="h-full grid place-items-center text-zinc-400">Loading algorithms…</div>}>
-                <AlgorithmsPage />
-              </Suspense>
-            }
+            element={<Suspense fallback={fallback('Loading algorithms…')}><AlgorithmsPage /></Suspense>}
           />
           <Route path="*" element={<Navigate to="/timer" replace />} />
         </Routes>
       </div>
+      {!isDesktop && <BottomNav />}
     </div>
   )
 }

@@ -10,8 +10,9 @@ const link = ({ isActive }: { isActive: boolean }) =>
 export function NavBar() {
   return (
     <nav className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border-b border-zinc-100 dark:border-zinc-800 overflow-x-auto">
-      <span className="font-semibold text-zinc-700 dark:text-zinc-200 mr-2 shrink-0">CubeTimer</span>
+      <span className="font-bold tracking-tight text-zinc-700 dark:text-zinc-200 mr-2 shrink-0">Turnix</span>
       <NavLink to="/timer" className={link}>Timer</NavLink>
+      <NavLink to="/stats" className={link}>Stats</NavLink>
       <NavLink to="/solver" className={link}>Solver</NavLink>
       <NavLink to="/algorithms" className={link}>Algorithms</NavLink>
     </nav>
