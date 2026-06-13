@@ -122,6 +122,8 @@ export function ScanDialog({ onApply, onClose }: Props) {
   const [manual, setManual] = useState(false)
   const [activeColor, setActiveColor] = useState<FaceKey>('U')
   const [error, setError] = useState<string | null>(null)
+  // Latest confirmFace, so the once-mounted key listener always calls the current one.
+  const confirmFaceRef = useRef<() => void>(() => {})
 
   const step = STEPS[stepIndex]
 
@@ -158,7 +160,14 @@ export function ScanDialog({ onApply, onClose }: Props) {
   }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return }
+      // Space confirms the current face — fast keyboard scanning on a laptop.
+      if ((e.code === 'Space' || e.key === ' ') && !e.repeat) {
+        e.preventDefault()
+        confirmFaceRef.current()
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
@@ -204,6 +213,7 @@ export function ScanDialog({ onApply, onClose }: Props) {
     setDetected(null)
     setManual(false)
   }
+  useEffect(() => { confirmFaceRef.current = confirmFace })
 
   const back = () => {
     if (stepIndex === 0) return
@@ -315,6 +325,9 @@ export function ScanDialog({ onApply, onClose }: Props) {
                 Back
               </button>
             </div>
+            <p className="text-center text-xs text-zinc-400">
+              Tip: press <kbd className="rounded border border-zinc-300 dark:border-zinc-600 px-1">Space</kbd> to confirm each face.
+            </p>
           </>
         )}
       </div>
