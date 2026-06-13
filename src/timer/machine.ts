@@ -24,6 +24,8 @@ export type TimerEvent =
   | { type: 'RELEASE'; now: number }
   | { type: 'HOLD_ELAPSED'; now: number }
   | { type: 'STOP'; now: number }
+  // Inspection countdown reached 0 — start the solve automatically.
+  | { type: 'AUTO_START'; now: number }
 
 export function initialTimerState(): TimerState {
   return { phase: 'idle', inspectionStartedAt: null, solveStartedAt: null, lastResult: null }
@@ -50,6 +52,10 @@ export function reduce(state: TimerState, event: TimerEvent, config: TimerConfig
 
     case 'inspecting':
       if (event.type === 'PRESS') return { ...state, phase: 'holding' }
+      if (event.type === 'AUTO_START') {
+        // Full 15s inspection elapsed → start the solve, no penalty.
+        return { ...state, phase: 'running', solveStartedAt: event.now, inspectionStartedAt: null }
+      }
       return state // RELEASE/others ignored; countdown handled by the hook
 
     case 'holding':

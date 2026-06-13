@@ -69,6 +69,7 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
   const inspectionRaf = useRef<number | null>(null)
   const cue8Ref = useRef(false)
   const cue12Ref = useRef(false)
+  const autoStartedRef = useRef(false)
 
   // sync latest-ref values after every render (standard "latest ref" pattern)
   useEffect(() => {
@@ -117,10 +118,11 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
     }
   }, [state.phase, state.solveStartedAt, decimals])
 
-  // reset audio cue flags whenever a new inspection starts (or clears)
+  // reset per-inspection flags whenever a new inspection starts (or clears)
   useEffect(() => {
     cue8Ref.current = false
     cue12Ref.current = false
+    autoStartedRef.current = false
   }, [state.inspectionStartedAt])
 
   // inspection countdown display + audio cues. Runs through inspecting AND the
@@ -132,6 +134,13 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
       const tick = () => {
         const elapsed = (performance.now() - (stateRef.current.inspectionStartedAt ?? 0)) / 1000
         setInspectionSecondsState(Math.max(0, Math.ceil(15 - elapsed)))
+        // auto-start the solve when the 15s inspection runs out (only if the
+        // user hasn't already begun arming a hold)
+        if (stateRef.current.phase === 'inspecting' && elapsed >= 15 && !autoStartedRef.current) {
+          autoStartedRef.current = true
+          dispatch({ type: 'AUTO_START' })
+          return
+        }
         // audio cues at 8s and 12s elapsed — fire once each
         if (audioCuesRef.current) {
           if (!cue8Ref.current && elapsed >= 8) {
@@ -148,7 +157,7 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
       inspectionRaf.current = requestAnimationFrame(tick)
       return () => { if (inspectionRaf.current) cancelAnimationFrame(inspectionRaf.current) }
     }
-  }, [inspectionActive])
+  }, [inspectionActive, dispatch])
 
   // keyboard wiring
   useEffect(() => {
