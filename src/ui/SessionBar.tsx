@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Session } from '../types'
 import { Modal } from './Modal'
+import { Dropdown } from './Dropdown'
 
 interface Props {
   sessions: Session[]
@@ -45,12 +46,12 @@ export function SessionBar({ sessions, activeId, onSwitch, onCreate, onRename, o
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <label className="sr-only" htmlFor="session-select">Active session</label>
-      <select id="session-select" aria-label="Active session" value={activeId}
-        onChange={(e) => onSwitch(e.target.value)}
-        className="rounded-md border border-zinc-200 dark:border-zinc-700 bg-transparent px-2 py-1">
-        {sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-      </select>
+      <Dropdown
+        ariaLabel="Active session"
+        value={activeId}
+        options={sessions.map((s) => ({ value: s.id, label: s.name }))}
+        onChange={onSwitch}
+      />
       <button type="button" aria-label="New session" className={iconBtn} onClick={openCreate}>＋</button>
       <button type="button" aria-label="Rename session" className={iconBtn} onClick={openRename}>✎</button>
       <button type="button" aria-label="Delete session" className={`${iconBtn} text-red-400`}

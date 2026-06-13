@@ -9,11 +9,12 @@ const sessions: Session[] = [
 ]
 
 describe('SessionBar', () => {
-  it('switches session on select change', () => {
+  it('switches session via the dropdown', () => {
     const onSwitch = vi.fn()
     render(<SessionBar sessions={sessions} activeId="s1" onSwitch={onSwitch}
       onCreate={vi.fn()} onRename={vi.fn()} onDelete={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Active session'), { target: { value: 's2' } })
+    fireEvent.click(screen.getByLabelText('Active session')) // open the dropdown
+    fireEvent.click(screen.getByText('OH'))                   // pick session s2
     expect(onSwitch).toHaveBeenCalledWith('s2')
   })
 

@@ -1,4 +1,5 @@
 import type { Settings } from '../types'
+import { Dropdown } from './Dropdown'
 
 interface Props {
   settings: Settings
@@ -24,25 +25,28 @@ export function SettingsPanel({ settings, onChange, onOpenTransfer }: Props) {
         <input type="checkbox" checked={settings.distractionFree}
           onChange={(e) => onChange({ distractionFree: e.target.checked })} />
       </label>
-      <label className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <span>Decimals</span>
-        <select value={settings.decimalPlaces}
-          onChange={(e) => onChange({ decimalPlaces: Number(e.target.value) as 2 | 3 })}
-          className="rounded border border-zinc-200 dark:border-zinc-700 bg-transparent px-2 py-1">
-          <option value={2}>2</option>
-          <option value={3}>3</option>
-        </select>
-      </label>
-      <label className="flex items-center justify-between gap-3">
+        <Dropdown
+          ariaLabel="Decimals"
+          value={String(settings.decimalPlaces)}
+          options={[{ value: '2', label: '2' }, { value: '3', label: '3' }]}
+          onChange={(v) => onChange({ decimalPlaces: Number(v) as 2 | 3 })}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-3">
         <span>Theme</span>
-        <select value={settings.theme}
-          onChange={(e) => onChange({ theme: e.target.value as Settings['theme'] })}
-          className="rounded border border-zinc-200 dark:border-zinc-700 bg-transparent px-2 py-1">
-          <option value="system">System</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </label>
+        <Dropdown
+          ariaLabel="Theme"
+          value={settings.theme}
+          options={[
+            { value: 'system', label: 'System' },
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+          onChange={(v) => onChange({ theme: v as Settings['theme'] })}
+        />
+      </div>
       <button type="button" onClick={onOpenTransfer}
         className="mt-2 rounded-md bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-500">
         Export / Import data…

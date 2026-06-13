@@ -10,6 +10,7 @@ import { SessionBar } from './SessionBar'
 import { SettingsPanel } from './SettingsPanel'
 import { ImportExportDialog } from './ImportExportDialog'
 import { Confetti } from './Confetti'
+import { Dropdown } from './Dropdown'
 import { getAllSessions, getAllSolves } from '../storage/db'
 import { average, best, formatTime } from '../stats/averages'
 import { EVENTS, eventOf } from '../scramble/events'
@@ -70,13 +71,12 @@ export function TimerPage() {
       {!focus && (
         <header className="flex items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="sr-only" htmlFor="puzzle-select">Puzzle</label>
-            <select id="puzzle-select" aria-label="Puzzle"
+            <Dropdown
+              ariaLabel="Puzzle"
               value={eventOf(s.sessions.find((x) => x.id === s.settings.activeSessionId))}
-              onChange={(e) => void s.selectEvent(e.target.value as PuzzleEvent)}
-              className="rounded-md border border-zinc-200 dark:border-zinc-700 bg-transparent px-2 py-1 text-sm font-medium">
-              {EVENTS.map((ev) => <option key={ev.id} value={ev.id}>{ev.label}</option>)}
-            </select>
+              options={EVENTS.map((ev) => ({ value: ev.id, label: ev.label }))}
+              onChange={(v) => void s.selectEvent(v as PuzzleEvent)}
+            />
             <SessionBar
               sessions={s.sessions} activeId={s.settings.activeSessionId}
               onSwitch={(id) => void s.switchSession(id)}
