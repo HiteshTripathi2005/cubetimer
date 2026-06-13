@@ -14,7 +14,12 @@ const AlgorithmsPage = lazy(() => import('./AlgorithmsPage'))
 // desktop keeps the full top nav.
 function MobileTopBar() {
   return (
-    <header className="shrink-0 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800 py-2.5">
+    <header
+      className="shrink-0 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-2.5"
+      // Pad below the device status bar so the wordmark sits inside the app,
+      // not behind the status bar on edge-to-edge phones.
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.625rem)' }}
+    >
       <span className="font-bold tracking-tight text-zinc-800 dark:text-zinc-100">Turnix</span>
     </header>
   )
