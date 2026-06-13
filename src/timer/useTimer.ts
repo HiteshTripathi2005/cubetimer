@@ -117,12 +117,18 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
     }
   }, [state.phase, state.solveStartedAt, decimals])
 
-  // inspection countdown display + audio cues
+  // reset audio cue flags whenever a new inspection starts (or clears)
   useEffect(() => {
-    if (state.phase === 'inspecting' && state.inspectionStartedAt !== null) {
-      // reset audio cue flags when inspection (re)starts
-      cue8Ref.current = false
-      cue12Ref.current = false
+    cue8Ref.current = false
+    cue12Ref.current = false
+  }, [state.inspectionStartedAt])
+
+  // inspection countdown display + audio cues. Runs through inspecting AND the
+  // holding/ready arming phases, so the countdown stays live while the user
+  // presses to start the solve — it only stops once the solve is running.
+  const inspectionActive = state.inspectionStartedAt !== null && state.phase !== 'running'
+  useEffect(() => {
+    if (inspectionActive) {
       const tick = () => {
         const elapsed = (performance.now() - (stateRef.current.inspectionStartedAt ?? 0)) / 1000
         setInspectionSecondsState(Math.max(0, Math.ceil(15 - elapsed)))
@@ -142,7 +148,7 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
       inspectionRaf.current = requestAnimationFrame(tick)
       return () => { if (inspectionRaf.current) cancelAnimationFrame(inspectionRaf.current) }
     }
-  }, [state.phase, state.inspectionStartedAt])
+  }, [inspectionActive])
 
   // keyboard wiring
   useEffect(() => {
@@ -172,7 +178,7 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
     ? runningDisplay
     : (state.lastResult ? formatTime(state.lastResult.elapsedMs, decimals) : (0).toFixed(decimals))
 
-  const inspectionSeconds = state.phase === 'inspecting' ? inspectionSecondsState : null
+  const inspectionSeconds = inspectionActive ? inspectionSecondsState : null
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault()

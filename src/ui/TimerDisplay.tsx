@@ -15,7 +15,10 @@ const phaseColor: Record<TimerPhase, string> = {
 }
 
 export function TimerDisplay({ phase, display, inspectionSeconds }: Props) {
-  const value = phase === 'inspecting' && inspectionSeconds !== null ? String(inspectionSeconds) : display
+  // Show the inspection countdown whenever it's active — including while the
+  // user presses/holds to arm the solve (holding/ready). Only once the solve is
+  // running does it switch to the up-counting time.
+  const value = inspectionSeconds !== null ? String(inspectionSeconds) : display
   return (
     <div className="flex items-center justify-center select-none">
       <span className={`font-mono font-bold tabular-nums text-7xl sm:text-8xl ${phaseColor[phase]}`}>
