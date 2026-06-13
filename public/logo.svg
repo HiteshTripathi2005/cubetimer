@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Isometric Rubik's cube: white top, green left, red right (app palette) -->
+  <!-- cube body -->
+  <polygon points="512,190 777,343 512,496 247,343" fill="#0a0a0a"/>
+  <polygon points="247,343 512,496 512,802 247,649" fill="#0a0a0a"/>
+  <polygon points="512,496 777,343 777,649 512,802" fill="#0a0a0a"/>
+
+  <!-- top face stickers: x→r/3, y→l/3 from apex (512,190) -->
+  <g transform="matrix(88.333 51 -88.333 51 512 190)">
+    <rect x="0.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="1.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="2.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="0.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="1.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="2.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="0.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="1.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+    <rect x="2.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#f4f4f5"/>
+  </g>
+
+  <!-- left face stickers: x→r/3, y→down/3 from (247,343) -->
+  <g transform="matrix(88.333 51 0 102 247 343)">
+    <rect x="0.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="1.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="2.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="0.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="1.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="2.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="0.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="1.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+    <rect x="2.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#00a000"/>
+  </g>
+  <!-- soft shading for depth -->
+  <polygon points="247,343 512,496 512,802 247,649" fill="#000000" opacity="0.10"/>
+
+  <!-- right face stickers: x→r/3 (up-right), y→down/3 from (512,496) -->
+  <g transform="matrix(88.333 -51 0 102 512 496)">
+    <rect x="0.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="1.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="2.05" y="0.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="0.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="1.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="2.05" y="1.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="0.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="1.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+    <rect x="2.05" y="2.05" width="0.9" height="0.9" rx="0.1" fill="#ec0000"/>
+  </g>
+  <polygon points="512,496 777,343 777,649 512,802" fill="#000000" opacity="0.22"/>
+</svg>

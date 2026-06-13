@@ -5,6 +5,7 @@ import { EXPORT_VERSION, type Session, type Solve, type Settings } from '../type
 const settings: Settings = {
   theme: 'system', inspection: false, inspectionAudioCues: true,
   holdToStartMs: 300, distractionFree: false, decimalPlaces: 2, activeSessionId: 's1',
+  profile: { name: '', avatar: null, info: '' },
 }
 const sessions: Session[] = [
   { id: 's1', name: 'Main', createdAt: 1 },

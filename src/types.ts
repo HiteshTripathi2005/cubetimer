@@ -18,6 +18,12 @@ export interface Session {
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
+export interface Profile {
+  name: string
+  avatar: string | null  // data URL of a small image, or null
+  info: string           // free-form note the user can fill in
+}
+
 export interface Settings {
   theme: ThemeMode
   inspection: boolean
@@ -26,6 +32,7 @@ export interface Settings {
   distractionFree: boolean
   decimalPlaces: 2 | 3
   activeSessionId: string
+  profile: Profile
 }
 
 export interface ExportFile {

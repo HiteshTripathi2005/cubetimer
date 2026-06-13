@@ -11,6 +11,7 @@ export function defaultSettings(activeSessionId: string): Settings {
     distractionFree: false,
     decimalPlaces: 2,
     activeSessionId,
+    profile: { name: '', avatar: null, info: '' },
   }
 }
 

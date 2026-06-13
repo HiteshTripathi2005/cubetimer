@@ -9,6 +9,7 @@ import { StatsView } from './StatsView'
 import { SessionBar } from './SessionBar'
 import { SettingsPanel } from './SettingsPanel'
 import { ImportExportDialog } from './ImportExportDialog'
+import { Confetti } from './Confetti'
 import { getAllSessions, getAllSolves } from '../storage/db'
 import { average, best, formatTime } from '../stats/averages'
 
@@ -16,6 +17,7 @@ export function TimerPage() {
   const s = useStore()
   const [showSettings, setShowSettings] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
+  const [celebrate, setCelebrate] = useState(0)
 
   // Adaptation #1: use a stable action reference so the effect dep array is satisfied
   // without a blanket eslint-disable. Zustand action identities are stable, and the
@@ -25,7 +27,15 @@ export function TimerPage() {
 
   const { phase, display, inspectionSeconds, pointerHandlers } = useTimer({
     config: { inspection: s.settings.inspection, holdToStartMs: s.settings.holdToStartMs },
-    onSolve: (ms, penalty) => { void s.addSolve(ms, penalty) },
+    onSolve: (ms, penalty) => {
+      // Celebrate a new session best (only when there's a prior best to beat).
+      const prevBest = best(s.solves)
+      if (penalty !== 'dnf') {
+        const eff = penalty === 'plus2' ? ms + 2000 : ms
+        if (prevBest !== null && eff < prevBest) setCelebrate((c) => c + 1)
+      }
+      void s.addSolve(ms, penalty)
+    },
     decimals: s.settings.decimalPlaces,
     audioCues: s.settings.inspectionAudioCues,
   })
@@ -119,6 +129,8 @@ export function TimerPage() {
           onClose={() => setShowTransfer(false)}
         />
       )}
+
+      <Confetti fireKey={celebrate} />
     </div>
   )
 }
