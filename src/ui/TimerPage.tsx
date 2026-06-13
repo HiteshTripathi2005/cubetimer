@@ -12,6 +12,8 @@ import { ImportExportDialog } from './ImportExportDialog'
 import { Confetti } from './Confetti'
 import { getAllSessions, getAllSolves } from '../storage/db'
 import { average, best, formatTime } from '../stats/averages'
+import { EVENTS, eventOf } from '../scramble/events'
+import type { PuzzleEvent } from '../types'
 
 export function TimerPage() {
   const s = useStore()
@@ -66,8 +68,15 @@ export function TimerPage() {
   return (
     <div className="h-full w-full max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col gap-4 md:overflow-hidden">
       {!focus && (
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="puzzle-select">Puzzle</label>
+            <select id="puzzle-select" aria-label="Puzzle"
+              value={eventOf(s.sessions.find((x) => x.id === s.settings.activeSessionId))}
+              onChange={(e) => void s.selectEvent(e.target.value as PuzzleEvent)}
+              className="rounded-md border border-zinc-200 dark:border-zinc-700 bg-transparent px-2 py-1 text-sm font-medium">
+              {EVENTS.map((ev) => <option key={ev.id} value={ev.id}>{ev.label}</option>)}
+            </select>
             <SessionBar
               sessions={s.sessions} activeId={s.settings.activeSessionId}
               onSwitch={(id) => void s.switchSession(id)}

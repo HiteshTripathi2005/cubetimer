@@ -10,10 +10,17 @@ export interface Solve {
   comment?: string
 }
 
+// WCA-style puzzle events Turnix can time (scrambles via scrambow).
+export type PuzzleEvent =
+  | '222' | '333' | '444' | '555' | '666' | '777'
+  | 'pyram' | 'skewb' | 'minx' | 'sq1' | 'clock'
+
 export interface Session {
   id: string
   name: string
   createdAt: number
+  /** Puzzle this session times. Absent on legacy sessions → treated as 3×3. */
+  event?: PuzzleEvent
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system'

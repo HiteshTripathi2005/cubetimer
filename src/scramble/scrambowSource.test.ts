@@ -16,4 +16,11 @@ describe('ScrambowSource', () => {
     const src = new ScrambowSource()
     expect(src.next()).not.toBe(src.next())
   })
+
+  it('generates scrambles for other puzzles', () => {
+    const src = new ScrambowSource()
+    for (const event of ['222', '444', 'pyram', 'skewb', 'sq1'] as const) {
+      expect(src.next(event).trim().length).toBeGreaterThan(0)
+    }
+  })
 })

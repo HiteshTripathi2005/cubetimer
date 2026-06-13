@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ExportFile, Penalty, Session, Settings, Solve } from '../types'
+import type { ExportFile, Penalty, PuzzleEvent, Session, Settings, Solve } from '../types'
 import { uid } from '../lib/uid'
 import { defaultSettings, loadSettings, saveSettings } from '../storage/settings'
 import {
@@ -8,17 +8,18 @@ import {
 } from '../storage/db'
 import { ScrambowSource } from '../scramble/scrambowSource'
 import type { ScrambleSource } from '../scramble/source'
+import { DEFAULT_EVENT, eventLabel, eventOf } from '../scramble/events'
 
 const scrambleSource: ScrambleSource = new ScrambowSource()
 
 // Fix 2: safe scramble wrapper — one retry, then sentinel fallback.
 const SCRAMBLE_FALLBACK = '— scramble unavailable —'
-function safeScramble(): string {
+function safeScramble(event: PuzzleEvent): string {
   try {
-    return scrambleSource.next()
+    return scrambleSource.next(event)
   } catch {
     try {
-      return scrambleSource.next()
+      return scrambleSource.next(event)
     } catch {
       return SCRAMBLE_FALLBACK
     }
@@ -48,7 +49,9 @@ interface StoreState {
   setPenalty: (id: string, penalty: Penalty) => Promise<void>
   setComment: (id: string, comment: string) => Promise<void>
   deleteSolve: (id: string) => Promise<void>
-  createSession: (name: string) => Promise<void>
+  createSession: (name: string, event?: PuzzleEvent) => Promise<void>
+  /** Switch to (or create) a session for the given puzzle. */
+  selectEvent: (event: PuzzleEvent) => Promise<void>
   renameSession: (id: string, name: string) => Promise<void>
   deleteSession: (id: string) => Promise<void>
   switchSession: (id: string) => Promise<void>
@@ -88,7 +91,7 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       let sessions = await getAllSessions()
       if (sessions.length === 0) {
-        const session: Session = { id: uid(), name: 'Main', createdAt: Date.now() }
+        const session: Session = { id: uid(), name: 'Main', createdAt: Date.now(), event: DEFAULT_EVENT }
         await putSession(session)
         sessions = [session]
       }
@@ -98,26 +101,32 @@ export const useStore = create<StoreState>((set, get) => ({
         saveSettings(settings)
       }
       const solves = await getSolvesBySession(settings.activeSessionId)
-      set({ ready: true, settings, sessions, solves, scramble: safeScramble() })
+      const event = eventOf(sessions.find((s) => s.id === settings.activeSessionId))
+      set({ ready: true, settings, sessions, solves, scramble: safeScramble(event) })
     } catch {
       // Fix 1: DB failure fallback — never leave ready=false / hang on loading screen.
-      const session: Session = { id: uid(), name: 'Main', createdAt: Date.now() }
+      const session: Session = { id: uid(), name: 'Main', createdAt: Date.now(), event: DEFAULT_EVENT }
       const settings = defaultSettings(session.id)
-      set({ ready: true, settings, sessions: [session], solves: [], scramble: safeScramble() })
+      set({ ready: true, settings, sessions: [session], solves: [], scramble: safeScramble(DEFAULT_EVENT) })
     }
   },
 
-  newScramble: () => set({ scramble: safeScramble() }),
+  // The puzzle of the currently active session (legacy sessions → 3×3).
+  newScramble: () => {
+    const { sessions, settings } = get()
+    set({ scramble: safeScramble(eventOf(sessions.find((s) => s.id === settings.activeSessionId))) })
+  },
 
   addSolve: async (timeMs, penalty) => {
-    const { settings } = get()
+    const { settings, sessions } = get()
     const solve: Solve = {
       id: uid(), sessionId: settings.activeSessionId, timeMs, penalty,
       scramble: get().scramble, createdAt: Date.now(),
     }
     await putSolve(solve)
+    const event = eventOf(sessions.find((s) => s.id === settings.activeSessionId))
     // Fix 4: read fresh solves after await to avoid concurrency loss.
-    set({ solves: [...get().solves, solve], scramble: safeScramble() })
+    set({ solves: [...get().solves, solve], scramble: safeScramble(event) })
   },
 
   // Fix 5: delegate to shared private helper.
@@ -134,11 +143,24 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ solves: get().solves.filter((s) => s.id !== id) })
   },
 
-  createSession: async (name) => {
-    const session: Session = { id: uid(), name: name.trim() || 'Session', createdAt: Date.now() }
+  createSession: async (name, event) => {
+    const { sessions, settings } = get()
+    const ev = event ?? eventOf(sessions.find((s) => s.id === settings.activeSessionId))
+    const session: Session = { id: uid(), name: name.trim() || 'Session', createdAt: Date.now(), event: ev }
     await putSession(session)
     set({ sessions: [...get().sessions, session] })
     await get().switchSession(session.id)
+  },
+
+  selectEvent: async (event) => {
+    const { sessions } = get()
+    const ofEvent = sessions.filter((s) => eventOf(s) === event)
+    if (ofEvent.length > 0) {
+      const mostRecent = ofEvent.reduce((a, b) => (b.createdAt > a.createdAt ? b : a))
+      await get().switchSession(mostRecent.id)
+    } else {
+      await get().createSession(eventLabel(event), event)
+    }
   },
 
   renameSession: async (id, name) => {
@@ -161,7 +183,8 @@ export const useStore = create<StoreState>((set, get) => ({
     const settings = { ...get().settings, activeSessionId: id }
     saveSettings(settings)
     const solves = await getSolvesBySession(id)
-    set({ settings, solves })
+    const event = eventOf(get().sessions.find((s) => s.id === id))
+    set({ settings, solves, scramble: safeScramble(event) })
   },
 
   updateSettings: (patch) => {
