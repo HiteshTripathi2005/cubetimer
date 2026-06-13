@@ -134,9 +134,13 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
       const tick = () => {
         const elapsed = (performance.now() - (stateRef.current.inspectionStartedAt ?? 0)) / 1000
         setInspectionSecondsState(Math.max(0, Math.ceil(15 - elapsed)))
-        // auto-start the solve when the 15s inspection runs out (only if the
-        // user hasn't already begun arming a hold)
-        if (stateRef.current.phase === 'inspecting' && elapsed >= 15 && !autoStartedRef.current) {
+        // auto-start the solve when the 15s inspection runs out — even if the
+        // user is mid-hold (holding/ready), so they aren't forced to release.
+        if (
+          stateRef.current.inspectionStartedAt !== null &&
+          stateRef.current.phase !== 'running' &&
+          elapsed >= 15 && !autoStartedRef.current
+        ) {
           autoStartedRef.current = true
           dispatch({ type: 'AUTO_START' })
           return

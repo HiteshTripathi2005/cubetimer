@@ -7,7 +7,7 @@ describe('settings storage', () => {
   it('defaultSettings uses the given session id and sane defaults', () => {
     const s = defaultSettings('sess-1')
     expect(s.activeSessionId).toBe('sess-1')
-    expect(s.inspection).toBe(false)
+    expect(s.inspection).toBe(true)
     expect(s.holdToStartMs).toBe(300)
     expect(s.decimalPlaces).toBe(2)
   })

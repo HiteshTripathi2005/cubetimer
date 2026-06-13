@@ -5,7 +5,7 @@ export const SETTINGS_KEY = 'cubetimer.settings.v1'
 export function defaultSettings(activeSessionId: string): Settings {
   return {
     theme: 'system',
-    inspection: false,
+    inspection: true,
     inspectionAudioCues: true,
     holdToStartMs: 300,
     distractionFree: false,

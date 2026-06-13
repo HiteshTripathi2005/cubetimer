@@ -80,6 +80,18 @@ describe('timer machine (inspection)', () => {
     expect(st.lastResult).toEqual({ elapsedMs: 10000, penalty: 'none' })
   })
 
+  it('AUTO_START fires while holding/ready, not just inspecting', () => {
+    let st = initialTimerState()
+    st = reduce(st, { type: 'PRESS', now: 0 }, withInspect)
+    st = reduce(st, { type: 'PRESS', now: 5000 }, withInspect) // second press → holding
+    expect(st.phase).toBe('holding')
+    st = reduce(st, { type: 'AUTO_START', now: 15000 }, withInspect)
+    expect(st.phase).toBe('running')
+    expect(st.solveStartedAt).toBe(15000)
+    st = reduce(st, { type: 'STOP', now: 25000 }, withInspect)
+    expect(st.lastResult).toEqual({ elapsedMs: 10000, penalty: 'none' })
+  })
+
   it('none penalty when inspection is under 15s', () => {
     let st = initialTimerState()
     st = reduce(st, { type: 'PRESS', now: 0 }, withInspect)

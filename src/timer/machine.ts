@@ -52,14 +52,18 @@ export function reduce(state: TimerState, event: TimerEvent, config: TimerConfig
 
     case 'inspecting':
       if (event.type === 'PRESS') return { ...state, phase: 'holding' }
+      // Full 15s inspection elapsed → start the solve, no penalty. Fires from
+      // inspecting OR while the user is holding to arm (see below).
       if (event.type === 'AUTO_START') {
-        // Full 15s inspection elapsed → start the solve, no penalty.
         return { ...state, phase: 'running', solveStartedAt: event.now, inspectionStartedAt: null }
       }
       return state // RELEASE/others ignored; countdown handled by the hook
 
     case 'holding':
       if (event.type === 'HOLD_ELAPSED') return { ...state, phase: 'ready' }
+      if (event.type === 'AUTO_START') {
+        return { ...state, phase: 'running', solveStartedAt: event.now, inspectionStartedAt: null }
+      }
       if (event.type === 'RELEASE') {
         // released before armed -> cancel
         return state.inspectionStartedAt !== null
@@ -69,6 +73,9 @@ export function reduce(state: TimerState, event: TimerEvent, config: TimerConfig
       return state
 
     case 'ready':
+      if (event.type === 'AUTO_START') {
+        return { ...state, phase: 'running', solveStartedAt: event.now, inspectionStartedAt: null }
+      }
       if (event.type === 'RELEASE') {
         return { ...state, phase: 'running', solveStartedAt: event.now }
       }
