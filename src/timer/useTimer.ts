@@ -69,7 +69,6 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
   const inspectionRaf = useRef<number | null>(null)
   const cue8Ref = useRef(false)
   const cue12Ref = useRef(false)
-  const autoStartedRef = useRef(false)
 
   // sync latest-ref values after every render (standard "latest ref" pattern)
   useEffect(() => {
@@ -118,12 +117,22 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
     }
   }, [state.phase, state.solveStartedAt, decimals])
 
-  // reset per-inspection flags whenever a new inspection starts (or clears)
+  // reset audio cue flags whenever a new inspection starts (or clears)
   useEffect(() => {
     cue8Ref.current = false
     cue12Ref.current = false
-    autoStartedRef.current = false
   }, [state.inspectionStartedAt])
+
+  // Auto-start the solve exactly 15s after inspection begins — a real timer, so
+  // it fires regardless of phase (inspecting OR mid-hold) and doesn't depend on
+  // the animation loop hitting the threshold. reduce() ignores AUTO_START once
+  // the solve is already running.
+  useEffect(() => {
+    if (state.inspectionStartedAt === null) return
+    const remaining = Math.max(0, 15000 - (performance.now() - state.inspectionStartedAt))
+    const id = window.setTimeout(() => dispatch({ type: 'AUTO_START' }), remaining)
+    return () => window.clearTimeout(id)
+  }, [state.inspectionStartedAt, dispatch])
 
   // inspection countdown display + audio cues. Runs through inspecting AND the
   // holding/ready arming phases, so the countdown stays live while the user
@@ -134,17 +143,6 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
       const tick = () => {
         const elapsed = (performance.now() - (stateRef.current.inspectionStartedAt ?? 0)) / 1000
         setInspectionSecondsState(Math.max(0, Math.ceil(15 - elapsed)))
-        // auto-start the solve when the 15s inspection runs out — even if the
-        // user is mid-hold (holding/ready), so they aren't forced to release.
-        if (
-          stateRef.current.inspectionStartedAt !== null &&
-          stateRef.current.phase !== 'running' &&
-          elapsed >= 15 && !autoStartedRef.current
-        ) {
-          autoStartedRef.current = true
-          dispatch({ type: 'AUTO_START' })
-          return
-        }
         // audio cues at 8s and 12s elapsed — fire once each
         if (audioCuesRef.current) {
           if (!cue8Ref.current && elapsed >= 8) {
@@ -161,7 +159,7 @@ export function useTimer({ config, onSolve, decimals = 2, audioCues = false }: U
       inspectionRaf.current = requestAnimationFrame(tick)
       return () => { if (inspectionRaf.current) cancelAnimationFrame(inspectionRaf.current) }
     }
-  }, [inspectionActive, dispatch])
+  }, [inspectionActive])
 
   // keyboard wiring
   useEffect(() => {
