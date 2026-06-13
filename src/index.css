@@ -2,7 +2,11 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root { color-scheme: light dark; }
+/* Match native controls (select popups, scrollbars) to the app's theme, which
+   is class-based on <html>. Without this, a dark app shows light dropdown
+   popups, making light option text unreadable (white-on-white). */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
 html, body, #root { height: 100%; margin: 0; }
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
